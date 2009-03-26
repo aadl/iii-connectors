@@ -250,8 +250,8 @@ class iiitools {
 			$postvars[] = 'submit=SUBMIT';
 			$postvars[] = 'radio=' . $inum;
 		}
-		$post = implode('&', $postvars);
 		if ($pickup_loc) { $postvars[] = 'loc=' . $pickup_loc; }
+		$post = implode('&', $postvars);
 		
 		// To make sure the record has been freed.  Otherwise we run in to a race condition.
 		usleep(300000);
@@ -276,6 +276,24 @@ class iiitools {
 				$result[selection][$i][location] = trim($items_match_raw[3][$i]);
 				$result[selection][$i][callnum] = trim($items_match_raw[5][$i]) . ' ' . trim($items_match_raw[6][$i]);
 				$result[selection][$i][status] = trim($items_match_raw[8][$i]);
+			}
+		}
+		// handle if user needs to select a location to pickup item
+		$result['choose_location'] = null;
+		if (preg_match('/select name=loc(.*?)\<\/form\>/is', $result['body'], $location_form)) {
+			//get options
+			preg_match_all('/\<option (.*?)\<\/option/is', $location_form[1], $found_options);
+			$num_items = count($found_options[0]);
+			$options = array();
+			for ($i = 0; $i < $num_items; $i++) {
+				$value = preg_match('/value="(.*?)"/is', $found_options[1][$i], $found_value);
+				$name = preg_match('/\>(.*$)/is', $found_options[1][$i], $found_name);
+				if ($value && $name && preg_match('/\w/', $found_value[1])) {
+					$options[$found_value[1]] = $found_name[1];
+				}
+			}
+			if (count($options)) {
+				$result['choose_location'] = array('options' => $options);
 			}
 		}
 
@@ -447,7 +465,9 @@ class iiitools {
 		$postvars_confirm = 'cksum=' . trim($chksum_match[1]) . '&entered=Y&confirmed=Y';
 		usleep(500000); // To make sure the record has been freed.
 		$pay_result = self::my_curl_exec($url_suffix, $postvars_confirm . $postvars);
-		if (preg_match('%Your payment has been approved%s', $pay_result[body])) {
+		// may vary depending on how OPAC/ILS is set up (TODO: turn into config setting?)
+		if ((preg_match('%Your payment has been approved%s', $pay_result[body])) ||
+			(preg_match('%Your payment has been accepted%s', $pay_result[body]))) {
 			$result_arr[approved] = 1;
 		} else {
 			$result_arr[approved] = 0;

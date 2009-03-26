@@ -1,0 +1,17 @@
+Sid_M: committed 3/26/2009
+
+iiitools_2006.php:
+
+  --in place_hold(), put the following two lines in the following order:
+        if ($pickup_loc) { $postvars[] = 'loc=' . $pickup_loc; }
+        $post = implode('&', $postvars);
+  --add section of code to place_hold() which parses if return is requesting selection of a branch for pickup
+  --extended pay_fine() so it accepts either of the following (may need confg setting):
+        Your payment has been approved
+        Your payment has been accepted
+
+locum_iii_2006.php:
+
+  --removed the first of the following lines from item_status() since the second clobbers it:
+        $regex_o = '%bibOrderEntry(.*?)td(.*?)>(.*?)<%U';
+        $regex_o = '%bibOrderEntry(.*?)td(.*?)>(.*?)<%s';

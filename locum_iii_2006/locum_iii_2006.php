@@ -245,7 +245,6 @@ class locum_iii_2006 {
 		$item_status_result[holds] = (int) trim($match_r[1]) ? trim($match_r[1]) : 0;
 
 		// Order Entry Regex
-		$regex_o = '%bibOrderEntry(.*?)td(.*?)>(.*?)<%U';
 		$regex_o = '%bibOrderEntry(.*?)td(.*?)>(.*?)<%s';
 		preg_match($regex_o, $avail_page_raw, $match_o);
 		$order_entry_msg = trim($match_o[3]);
