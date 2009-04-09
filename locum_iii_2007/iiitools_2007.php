@@ -41,7 +41,9 @@ class iiitools {
 	 */
 	public function __destruct() {
 		self::catalog_logout();
-		if (is_file($this->cookie)) { unlink($this->cookie); }
+		if (is_file($this->cookie)) { 
+			//unlink($this->cookie); 
+		}
 	}
 
 	/**
@@ -120,7 +122,7 @@ class iiitools {
 		if (!$this->pin) { exit('PIN not yet set'); }
 		$form_url = "patroninfo/";
 		$postvars = 'name=' . $this->patroninfo[PATRNNAME] . '&code=' . $this->cardnum . '&pin=' . $this->pin;
-		self::my_curl_exec($form_url, $postvars);
+		return self::my_curl_exec($form_url, $postvars, NULL, NULL, TRUE);
 		return TRUE;
 	}
 
@@ -140,11 +142,13 @@ class iiitools {
 	 */
 	public function get_patron_items($sort_by_due = TRUE) {
 		if ($sort_by_due) {
-			$url_suffix = 'patroninfo/' . $this->pnum . '/sorteditems';
+			$url_suffix = 'patroninfo~S3/' . $this->pnum . '/sorteditems';
 		} else {
-			$url_suffix = 'patroninfo/' . $this->pnum . '/items';
+			$url_suffix = 'patroninfo~S3/' . $this->pnum . '/items';
 		}
 		$result = self::my_curl_exec($url_suffix);
+		return $result;
+//		print_r($result);
 		return self::parse_patron_items($result[body]);
 	}
 
@@ -156,6 +160,7 @@ class iiitools {
 	 */
 	public function parse_patron_items($itemlist_raw) {
 
+		$regex_2006 = '%<input type="checkbox" name="(.+?)" value="(.+?)" />(.+?)patFuncTitle">(.+?)</td>(.+?)patFuncBarcode"> (.+?) </td>(.+?)patFuncStatus"> DUE (.+?) (<span  class="patFuncRenewCount">(.+?)</span>)?(.+?)</td>(.+?)patFuncCallNo"> (.+?)</td>%s';
 		$regex = '%<input type="checkbox" name="(.+?)" value="(.+?)" />(.+?)patFuncTitle">(.+?)</td>(.+?)patFuncBarcode"> (.+?) </td>(.+?)patFuncStatus"> DUE (.+?) (<span  class="patFuncRenewCount">(.+?)</span>)?(.+?)</td>(.+?)patFuncCallNo"> (.+?)</td>%s';
 		$count = preg_match_all($regex, $itemlist_raw, $rawmatch);
 
@@ -520,12 +525,11 @@ class iiitools {
 	 * @param int $curl_timeout Timeout, in seconds, before cURL gives up curl_exec.  (optional).  Default: 6
 	 * @return array Array of parsed components from the cURL result as provided by parse_response()
 	 */
-	public function my_curl_exec($url_suffix, $postvars = NULL, $no_loop = FALSE, $curl_timeout = 6) {
+	public function my_curl_exec($url_suffix, $postvars = NULL, $no_loop = FALSE, $curl_timeout = 6, $login_query = FALSE) {
 
 		$agent = "Macintosh; U; Intel Mac OS X 10.5; en-US; rv:1.9) Gecko/2008061004 Firefox/3.0"; // You got a better idea?
 		if ($url_suffix[0] == '/') { $url_suffix = substr($url_suffix, 1); }
 		$curl_url = 'https://' . $this->iiiserver . '/' . $url_suffix;
-
 		$ch = curl_init();
 
 		// If we have POST variables to send, initializr them here
@@ -538,8 +542,11 @@ class iiitools {
 		curl_setopt ($ch, CURLOPT_USERAGENT, $agent);
 		curl_setopt ($ch, CURLOPT_URL, $curl_url);
 		curl_setopt ($ch, CURLOPT_RETURNTRANSFER, 1);
-		curl_setopt ($ch, CURLOPT_COOKIEJAR, $this->cookie);
-		curl_setopt ($ch, CURLOPT_COOKIEFILE, $this->cookie);
+		if ($login_query) {
+			curl_setopt ($ch, CURLOPT_COOKIEJAR, $this->cookie);
+		} else {
+			curl_setopt ($ch, CURLOPT_COOKIEFILE, $this->cookie);
+		}
 		curl_setopt ($ch, CURLOPT_COOKIESESSION, TRUE);
 		curl_setopt ($ch, CURLOPT_HEADER, 1);
 		curl_setopt ($ch, CURLOPT_TIMEOUT, $curl_timeout);
@@ -547,6 +554,7 @@ class iiitools {
 		curl_setopt ($ch, CURLOPT_SSL_VERIFYPEER, 0);
 		curl_setopt ($ch, CURLOPT_SSL_VERIFYHOST, 0);
 		curl_setopt ($ch, CURLOPT_AUTOREFERER, 1);
+		curl_setopt ($ch, CURLOPT_FOLLOWLOCATION, 1); 
 
 		// Execute the CURL query.  Loop 10 times if needed.  Sometimes it's needed.  Really.
 		$curl_loop = 0;
@@ -554,6 +562,7 @@ class iiitools {
 			$body = curl_exec($ch);
 			if ($no_loop) {
 				curl_close($ch);
+				unset($ch);
 				exec($cleanup_cmd);
 				return self::parse_response($body); 
 			}
@@ -563,6 +572,7 @@ class iiitools {
 			}
 		}
 		curl_close($ch);
+		unset($ch);
 		return self::parse_response($body);
 	}
 

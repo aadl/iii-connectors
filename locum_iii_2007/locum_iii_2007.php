@@ -15,7 +15,7 @@
  * with the exception of the III patron API, which is a product we bought, along with 
  * practically every other III customer.
  */
-class locum_iii_2006 {
+class locum_iii_2007 {
 
 	public $locum_config;
 
@@ -309,12 +309,13 @@ class locum_iii_2006 {
 	 * @return boolean|array Array of patron checkouts or FALSE if login fails
 	 */
 	public function patron_checkouts($cardnum, $pin = NULL) {
-		require_once('iiitools_2006.php');
+		require_once('iiitools_2007.php');
 		$iii = new iiitools;
 		$iii->set_iiiserver($this->locum_config[ils_config][ils_server]);
 		$iii->set_cardnum($cardnum);
 		$iii->set_pin($pin);
-		if ($iii->catalog_login() == FALSE) { return FALSE; }
+		print_r($iii->catalog_login());
+		//if ($iii->catalog_login() == FALSE) { return FALSE; }
 		return $iii->get_patron_items();
 	}
 	
@@ -326,7 +327,7 @@ class locum_iii_2006 {
 	 * @return boolean|array Array of patron holds or FALSE if login fails
 	 */
 	public function patron_holds($cardnum, $pin = NULL) {
-		require_once('iiitools_2006.php');
+		require_once('iiitools_2007.php');
 		$iii = new iiitools;
 		$iii->set_iiiserver($this->locum_config[ils_config][ils_server]);
 		$iii->set_cardnum($cardnum);
@@ -344,7 +345,7 @@ class locum_iii_2006 {
 	 * @return boolean|array Array of item renewal statuses or FALSE if it cannot renew for some reason
 	 */
 	public function renew_items($cardnum, $pin = NULL, $items = NULL) {
-		require_once('iiitools_2006.php');
+		require_once('iiitools_2007.php');
 		$iii = new iiitools;
 		$iii->set_iiiserver($this->locum_config[ils_config][ils_server]);
 		$iii->set_cardnum($cardnum);
@@ -362,7 +363,7 @@ class locum_iii_2006 {
 	 * @return boolean TRUE or FALSE if it cannot cancel for some reason
 	 */
 	public function cancel_holds($cardnum, $pin = NULL, $items = NULL) {
-		require_once('iiitools_2006.php');
+		require_once('iiitools_2007.php');
 		$iii = new iiitools;
 		$iii->set_iiiserver($this->locum_config[ils_config][ils_server]);
 		$iii->set_cardnum($cardnum);
@@ -383,7 +384,7 @@ class locum_iii_2006 {
 	 * @return boolean TRUE or FALSE if it cannot place the hold for some reason
 	 */
 	public function place_hold($cardnum, $bnum, $inum = NULL, $pin = NULL, $pickup_loc = NULL) {
-		require_once('iiitools_2006.php');
+		require_once('iiitools_2007.php');
 		$iii = new iiitools;
 		$iii->set_iiiserver($this->locum_config[ils_config][ils_server]);
 		$iii->set_cardnum($cardnum);
@@ -400,7 +401,7 @@ class locum_iii_2006 {
 	 * @return boolean|array Array of patron fines or FALSE if login fails
 	 */
 	public function patron_fines($cardnum, $pin = NULL) {
-		require_once('iiitools_2006.php');
+		require_once('iiitools_2007.php');
 		$iii = new iiitools;
 		$iii->set_iiiserver($this->locum_config[ils_config][ils_server]);
 		$iii->set_cardnum($cardnum);
@@ -417,7 +418,7 @@ class locum_iii_2006 {
 	 * @return array Payment result
 	 */
 	public function pay_patron_fines($cardnum, $pin = NULL, $payment_details) {
-		require_once('iiitools_2006.php');
+		require_once('iiitools_2007.php');
 		$iii = new iiitools;
 		$iii->set_iiiserver($this->locum_config[ils_config][ils_server]);
 		$iii->set_cardnum($cardnum);
