@@ -428,7 +428,7 @@ class iiitools {
 	* @return string HTML body from the fine payment screen
 	*/
 	function get_patron_fines() {
-		$url_suffix = 'patroninfo/' . $this->pnum . '/overdues?pay=1';
+		$url_suffix = 'webapp/iii/ecom/pay.do?scope=3&ptype=' . $this->patroninfo[PTYPE] . '&tty=300';
 		$result = self::my_curl_exec($url_suffix);
 		return self::parse_patron_fines($result[body]);
 	}
@@ -439,13 +439,15 @@ class iiitools {
 	* @return array of fine details
 	*/
 	function parse_patron_fines($body) {
-		$regex = '%type="checkbox" name="charge(.+?)" checked>(.+?)</td>(.+?)right">\$(.+?)<%s';
-		$count = preg_match_all($regex, $body, $rawmatch);
+		$regex = '%type="checkbox" name="selectedFees" value="(.+?)"(.+?)>(.+?)\$(.+?)<%s';
 		$fines = array();
+		preg_match('%name="key" value="(.+?)"%s', $body, $keymatch);
+		$fines[sessionkey] = trim($keymatch[1]);
+		$count = preg_match_all($regex, $body, $rawmatch);
 		for ($i=0; $i < $count; $i++) {
-			$fines[$i][varname] = 'charge' . trim($rawmatch[1][$i]);
-			$fines[$i][desc] = trim($rawmatch[2][$i]);
-			$fines[$i][amount] = (float) trim($rawmatch[4][$i]);
+			$fines[items][$i][varname] = trim($rawmatch[1][$i]);
+			$fines[items][$i][desc] = trim($rawmatch[3][$i]);
+			$fines[items][$i][amount] = (float) trim($rawmatch[4][$i]);
 		}
 		return $fines;
 	}
@@ -470,29 +472,37 @@ class iiitools {
 	* @return array Payment results array.
 	*/
 	function pay_fine($payment_arr) {
-
-		$url_suffix_pre = '/payconfirm/' . $this->pnum . '/%2Fpatroninfo%2F' . $this->pnum . '%2Foverdues%3Fpay%3D1/%2Fpatroninfo%2F' . $this->pnum . '%2Foverdues';
-		$url_suffix = 'patroninfo/' . $this->pnum . '/overdues?pay=1';
-
-		$postvars_noconfirm = 'entered=Y';
-		foreach ($payment_arr as $pkey => $pval) {
-			$postvars .= '&' . $pkey . '=' . urlencode($pval);
-		}
 		
-		$pay_result_pre = self::my_curl_exec($url_suffix_pre, $postvars_noconfirm . $postvars);
-		preg_match('/name="cksum" value="(.*?)">/', $pay_result_pre[body], $chksum_match);
-		$postvars_confirm = 'cksum=' . trim($chksum_match[1]) . '&entered=Y&confirmed=Y';
+		$fines = self::get_patron_fines();
+		$sessionkey = $fines[sessionkey];
+		$url_suffix_stage1 = 'webapp/iii/ecom/validatePay.do';
+		$url_suffix_stage2 = 'webapp/iii/ecom/submitPay.do';
+
+		$postvars = 'action=confirmInfo&key=' . $sessionkey . '&parsedMoneyfmt=,.2&currencySymbol=$&serviceCharge=0&amount=0';
+		foreach ($payment_arr as $pkey => $pval) {
+			if ($pkey == 'varnames') {
+				foreach ($pval as $pid) {
+					$postvars .= '&selectedFees=' . trim($pid);
+				}
+			} else {
+				$postvars .= '&' . $pkey . '=' . urlencode($pval);				
+			}
+
+		}
+		$result = self::my_curl_exec($url_suffix_stage1, $postvars);
+		$postvars = 'action=submitData&key=' . $sessionkey;
+		$pay_result = self::my_curl_exec($url_suffix_stage2, $postvars);
 		usleep(500000); // To make sure the record has been freed.
-		$pay_result = self::my_curl_exec($url_suffix, $postvars_confirm . $postvars);
+
 		// may vary depending on how OPAC/ILS is set up (TODO: turn into config setting?)
 		if ((preg_match('%Your payment has been approved%s', $pay_result[body])) ||
 			(preg_match('%Your payment has been accepted%s', $pay_result[body]))) {
 			$result_arr[approved] = 1;
 		} else {
 			$result_arr[approved] = 0;
-			$is_msg = preg_match('%errormessage">(.+?)<(.+?)class="msg">(.+?)<%s', $pay_result[body], $err_match);
-			$result_arr[reason] = trim($err_match[3]);
-			$result_arr[error] = trim($err_match[1]);
+			$is_msg = preg_match('%key="creditForm.error"\/-->(.+?)<(.+?)error">(.+?)<%s', $pay_result[body], $err_match);
+			$result_arr[error] = trim($err_match[3]);
+			$result_arr[reason] = trim($err_match[1]);
 		}
 		return $result_arr;
 	}

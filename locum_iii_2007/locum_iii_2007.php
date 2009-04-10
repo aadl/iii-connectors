@@ -406,7 +406,8 @@ class locum_iii_2007 {
 		$iii->set_cardnum($cardnum);
 		$iii->set_pin($pin);
 		if ($iii->catalog_login() == FALSE) { return FALSE; }
-		return $iii->get_patron_fines();
+		$fines = $iii->get_patron_fines();
+		return $fines[items];
 	}
 	
 	/**
@@ -423,20 +424,19 @@ class locum_iii_2007 {
 		$iii->set_cardnum($cardnum);
 		$iii->set_pin($pin);
 		if ($iii->catalog_login() == FALSE) { return FALSE; }
-		foreach ($payment_details[varnames] as $varname) {
-			$iii_payment_details[$varname] = 'on';
-		}
+		$iii_payment_details[varnames] = $payment_details[varnames];
 		$iii_payment_details[amount] = '$' . number_format($payment_details[total], 2);
-		$iii_payment_details[ccname] = $payment_details[name];
+		$iii_payment_details[name] = $payment_details[name];
 		$iii_payment_details[address1] = $payment_details[address1];
 		$iii_payment_details[city] = $payment_details[city];
 		$iii_payment_details[state] = $payment_details[state];
 		$iii_payment_details[zip] = $payment_details[zip];
-		$iii_payment_details[emailaddr] = $payment_details[email];
+		$iii_payment_details[email] = $payment_details[email];
 		$iii_payment_details[ccnum] = $payment_details[ccnum];
-		$iii_payment_details[ccexpmonth] = $payment_details[ccexpmonth];
-		$iii_payment_details[ccexpyear] = $payment_details[ccexpyear];
-		$iii_payment_details[cc_cvv2] = $payment_details[ccseccode];
+		$iii_payment_details[ccexp_month] = $payment_details[ccexpmonth];
+		$iii_payment_details[ccexp_year] = $payment_details[ccexpyear];
+		$iii_payment_details[cvv] = $payment_details[ccseccode];
+
 		$payment_result = $iii->pay_fine($iii_payment_details);
 		return $payment_result;
 	}
