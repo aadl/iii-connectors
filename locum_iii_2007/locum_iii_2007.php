@@ -314,8 +314,7 @@ class locum_iii_2007 {
 		$iii->set_iiiserver($this->locum_config[ils_config][ils_server]);
 		$iii->set_cardnum($cardnum);
 		$iii->set_pin($pin);
-		print_r($iii->catalog_login());
-		//if ($iii->catalog_login() == FALSE) { return FALSE; }
+		if ($iii->catalog_login() == FALSE) { return FALSE; }
 		return $iii->get_patron_items();
 	}
 	

@@ -23,6 +23,7 @@ class iiitools {
 	public $pnum;
 	public $cookie;
 	public $patroninfo;
+	protected $ch;
 	protected $papi;
 	protected $pin;
 
@@ -33,6 +34,20 @@ class iiitools {
 	public function __construct() {
 		$this->cookie = self::set_cookie_file();
 		$this->papi = new iii_patronapi;
+		$this->ch = curl_init();
+		// Set all the CURL options
+		curl_setopt ($this->ch, CURLOPT_USERAGENT, $agent);
+		curl_setopt ($this->ch, CURLOPT_RETURNTRANSFER, 1);
+		curl_setopt ($this->ch, CURLOPT_COOKIEJAR, $this->cookie);
+		curl_setopt ($this->ch, CURLOPT_COOKIEFILE, $this->cookie);
+		curl_setopt ($this->ch, CURLOPT_COOKIESESSION, TRUE);
+		curl_setopt ($this->ch, CURLOPT_HEADER, 1);
+		curl_setopt ($this->ch, CURLOPT_TIMEOUT, $curl_timeout);
+		curl_setopt ($this->ch, CURLE_OPERATION_TIMEOUTED, 2);
+		curl_setopt ($this->ch, CURLOPT_SSL_VERIFYPEER, 0);
+		curl_setopt ($this->ch, CURLOPT_SSL_VERIFYHOST, 0);
+		curl_setopt ($this->ch, CURLOPT_AUTOREFERER, 1);
+		curl_setopt ($this->ch, CURLOPT_FOLLOWLOCATION, 1);
 	}
 
 	/**
@@ -41,8 +56,10 @@ class iiitools {
 	 */
 	public function __destruct() {
 		self::catalog_logout();
-		if (is_file($this->cookie)) { 
-			//unlink($this->cookie); 
+		if (is_file($this->cookie)) {
+			curl_close($this->ch);
+			unset($this->ch); 
+			unlink($this->cookie); 
 		}
 	}
 
@@ -147,8 +164,6 @@ class iiitools {
 			$url_suffix = 'patroninfo~S3/' . $this->pnum . '/items';
 		}
 		$result = self::my_curl_exec($url_suffix);
-		return $result;
-//		print_r($result);
 		return self::parse_patron_items($result[body]);
 	}
 
@@ -160,7 +175,6 @@ class iiitools {
 	 */
 	public function parse_patron_items($itemlist_raw) {
 
-		$regex_2006 = '%<input type="checkbox" name="(.+?)" value="(.+?)" />(.+?)patFuncTitle">(.+?)</td>(.+?)patFuncBarcode"> (.+?) </td>(.+?)patFuncStatus"> DUE (.+?) (<span  class="patFuncRenewCount">(.+?)</span>)?(.+?)</td>(.+?)patFuncCallNo"> (.+?)</td>%s';
 		$regex = '%<input type="checkbox" name="(.+?)" value="(.+?)" />(.+?)patFuncTitle">(.+?)</td>(.+?)patFuncBarcode"> (.+?) </td>(.+?)patFuncStatus"> DUE (.+?) (<span  class="patFuncRenewCount">(.+?)</span>)?(.+?)</td>(.+?)patFuncCallNo"> (.+?)</td>%s';
 		$count = preg_match_all($regex, $itemlist_raw, $rawmatch);
 
@@ -183,7 +197,7 @@ class iiitools {
 
 			if (trim($rawmatch[11][$i])) {
 				preg_match('%Renewed (.+?) time%s', $rawmatch[11][$i], $num_renews_raw);
-				$item[$i][numrenews] = trim($num_renews_raw[1]);
+				$item[$i][numrenews] = trim($num_renews_raw[1]) ? trim($num_renews_raw[1]) : 0;
 			} else {
 				$item[$i][numrenews] = 0;
 			}
@@ -530,40 +544,20 @@ class iiitools {
 		$agent = "Macintosh; U; Intel Mac OS X 10.5; en-US; rv:1.9) Gecko/2008061004 Firefox/3.0"; // You got a better idea?
 		if ($url_suffix[0] == '/') { $url_suffix = substr($url_suffix, 1); }
 		$curl_url = 'https://' . $this->iiiserver . '/' . $url_suffix;
-		$ch = curl_init();
 
 		// If we have POST variables to send, initializr them here
 		if ($postvars) {
-			curl_setopt ($ch, CURLOPT_POST, 1);
-			curl_setopt ($ch, CURLOPT_POSTFIELDS, $postvars);
+			curl_setopt ($this->ch, CURLOPT_POST, 1);
+			curl_setopt ($this->ch, CURLOPT_POSTFIELDS, $postvars);
 		}
-
-		// Set all the CURL options
-		curl_setopt ($ch, CURLOPT_USERAGENT, $agent);
-		curl_setopt ($ch, CURLOPT_URL, $curl_url);
-		curl_setopt ($ch, CURLOPT_RETURNTRANSFER, 1);
-		if ($login_query) {
-			curl_setopt ($ch, CURLOPT_COOKIEJAR, $this->cookie);
-		} else {
-			curl_setopt ($ch, CURLOPT_COOKIEFILE, $this->cookie);
-		}
-		curl_setopt ($ch, CURLOPT_COOKIESESSION, TRUE);
-		curl_setopt ($ch, CURLOPT_HEADER, 1);
-		curl_setopt ($ch, CURLOPT_TIMEOUT, $curl_timeout);
-		curl_setopt ($ch, CURLE_OPERATION_TIMEOUTED, 2);
-		curl_setopt ($ch, CURLOPT_SSL_VERIFYPEER, 0);
-		curl_setopt ($ch, CURLOPT_SSL_VERIFYHOST, 0);
-		curl_setopt ($ch, CURLOPT_AUTOREFERER, 1);
-		curl_setopt ($ch, CURLOPT_FOLLOWLOCATION, 1); 
+		curl_setopt ($this->ch, CURLOPT_URL, $curl_url);
 
 		// Execute the CURL query.  Loop 10 times if needed.  Sometimes it's needed.  Really.
 		$curl_loop = 0;
 		while (!$body) {
-			$body = curl_exec($ch);
+			$body = curl_exec($this->ch);
 			if ($no_loop) {
-				curl_close($ch);
-				unset($ch);
-				exec($cleanup_cmd);
+
 				return self::parse_response($body); 
 			}
 			$curl_loop++;
@@ -571,8 +565,6 @@ class iiitools {
 				return "Unable to contact catalog. ($curl_url) Please try again later.<br/><br/>";
 			}
 		}
-		curl_close($ch);
-		unset($ch);
 		return self::parse_response($body);
 	}
 
