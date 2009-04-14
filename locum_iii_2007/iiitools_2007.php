@@ -551,7 +551,7 @@ class iiitools {
 	 */
 	public function my_curl_exec($url_suffix, $postvars = NULL, $no_loop = FALSE, $curl_timeout = 6, $login_query = FALSE) {
 
-		$agent = "Macintosh; U; Intel Mac OS X 10.5; en-US; rv:1.9) Gecko/2008061004 Firefox/3.0"; // You got a better idea?
+		$agent = "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.4; en-US; rv:1.9.0.7) Gecko/2009021906 Firefox/3.0.7"; // You got a better idea?
 		if ($url_suffix[0] == '/') { $url_suffix = substr($url_suffix, 1); }
 		$curl_url = 'https://' . $this->iiiserver . '/' . $url_suffix;
 
