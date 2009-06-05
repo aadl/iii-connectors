@@ -72,6 +72,8 @@ class iiitools {
 		$this->cardnum = $cardnum;
 		self::load_patroninfo($cardnum);
 		self::set_cookie_file($cardnum, NULL);
+		curl_setopt ($this->ch, CURLOPT_COOKIEJAR, $this->cookie);
+		curl_setopt ($this->ch, CURLOPT_COOKIEFILE, $this->cookie);
 		$this->pnum = $this->patroninfo[RECORDNUM];
 	}
 
