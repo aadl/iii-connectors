@@ -538,7 +538,7 @@ class iiitools {
 		} else {
 			$year = trim($date_arr[2]);
 		}
-		$time = mktime(0, 0, 0, $date_arr[0], $date_arr[1], $year);
+		$time = mktime(0, 0, 0, (int) $date_arr[0], (int) $date_arr[1], $year);
 		return $time;
 	}
 

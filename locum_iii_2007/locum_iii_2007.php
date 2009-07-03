@@ -228,7 +228,7 @@ class locum_iii_2007 {
 		$avail_token = locum::csv_parser($this->locum_config[ils_custom_config][iii_available_token]);
 
 		$bnum = trim($bnum);
-		$url = 'http://' . $iii_webcat . '/search/.b' . $bnum . '/.b' . $bnum . '/1,1,1,B/holdings~' . $bnum . '&FF=&1,0,';
+		$url = 'http://' . $iii_webcat . '/record=b' . $bnum . '~S3';
 
 		$avail_page_raw = utf8_encode(file_get_contents($url));
 
@@ -239,10 +239,19 @@ class locum_iii_2007 {
 		$avail_temp[callnum] = $matches[3];
 		$avail_temp[status] = $matches[5];
 		
-		// Reserves Regex
-		$regex_r = '%<div>[\r\n](.*?)holds on%U';
-		preg_match($regex_r, $avail_page_raw, $match_r);
-		$item_status_result[holds] = (int) trim($match_r[1]) ? trim($match_r[1]) : 0;
+		// Reserves & totals Regex
+		$regex_r1 = '%<span class="bibHolds">(.*?)</span>%s';
+		preg_match($regex_r1, $avail_page_raw, $match_r1);
+
+		$regex_r2 = '%(.*?)hold(.*?)of(.*?)cop%s';
+		preg_match($regex_r2, trim($match_r1[1]), $match_r2);
+		$item_status_result[holds] = (int) trim($match_r2[1]) ? (int) trim($match_r2[1]) : 0;
+		$item_status_result[total] = (int) trim($match_r2[3]) ? (int) trim($match_r2[3]) : 0;
+
+		if (preg_match('%View additional copies%s', $avail_page_raw)) {
+			$url = 'http://' . $iii_webcat . '/search/.b' . $bnum . '/.b' . $bnum . '/1,1,1,B/holdings~' . $bnum . '&FF=&1,0,';
+			$avail_page_raw = utf8_encode(file_get_contents($url));
+		}
 
 		// Order Entry Regex
 		$regex_o = '%bibOrderEntry(.*?)td(.*?)>(.*?)<%s';
@@ -266,7 +275,7 @@ class locum_iii_2007 {
 				sort($avail[$cnum][$location][due]);
 			}
 		}
-		$item_status_result[total] = count($matches[3]);
+		$item_status_result[total] = $item_status_result[total] ? $item_status_result[total] : count($matches[3]);
 		$item_status_result[copies] = (int) $total_avail;
 		$item_status_result[details] = $avail;
 
