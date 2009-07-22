@@ -231,13 +231,6 @@ class locum_iii_2007 {
 		$url = 'http://' . $iii_webcat . '/record=b' . $bnum . '~S3';
 
 		$avail_page_raw = utf8_encode(file_get_contents($url));
-
-		// Holdings Regex
-		$regex_h = '%field 1 -->&nbsp;(.*?)</td>(.*?)browse">(.*?)</a>(.*?)field \% -->&nbsp;(.*?)</td>%s';
-		preg_match_all($regex_h, $avail_page_raw, $matches);
-		$avail_temp[location] = $matches[1];
-		$avail_temp[callnum] = $matches[3];
-		$avail_temp[status] = $matches[5];
 		
 		// Reserves & totals Regex
 		$regex_r1 = '%<span class="bibHolds">(.*?)</span>%s';
@@ -252,6 +245,13 @@ class locum_iii_2007 {
 			$url = 'http://' . $iii_webcat . '/search/.b' . $bnum . '/.b' . $bnum . '/1,1,1,B/holdings~' . $bnum . '&FF=&1,0,';
 			$avail_page_raw = utf8_encode(file_get_contents($url));
 		}
+
+		// Holdings Regex
+		$regex_h = '%field 1 -->&nbsp;(.*?)</td>(.*?)browse">(.*?)</a>(.*?)field \% -->&nbsp;(.*?)</td>%s';
+		preg_match_all($regex_h, $avail_page_raw, $matches);
+		$avail_temp[location] = $matches[1];
+		$avail_temp[callnum] = $matches[3];
+		$avail_temp[status] = $matches[5];
 
 		// Order Entry Regex
 		$regex_o = '%bibOrderEntry(.*?)td(.*?)>(.*?)<%s';

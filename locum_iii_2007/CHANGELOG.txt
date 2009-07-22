@@ -1,3 +1,9 @@
+smaskit committed 7/22/2009
+
+locum_iii_2007.php:
+
+	item_status() - moved Holdings regex section beneath section that loads new url is more records are available. Now holdings are based on page listing all not some items.
+
 jblyberg: committed 4/14/2009
 
 iiitools_2007.php:
