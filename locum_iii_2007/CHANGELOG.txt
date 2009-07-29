@@ -1,3 +1,9 @@
+smaskit committed 7/29/2009
+
+iiitools_2007.php:
+
+	Added the following functions to enable checkout history: get_patron_history_items, parse_patron_history_items, toggle_patron_history, delete_patron_history
+
 smaskit committed 7/22/2009
 
 locum_iii_2007.php:

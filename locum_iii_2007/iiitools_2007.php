@@ -170,6 +170,81 @@ class iiitools {
 	}
 
 	/**
+	 * Returns an array of checked-out items for history.
+	 *
+	 * @return array An array of items checked out.
+	 */
+	public function get_patron_history_items() {
+		$url_suffix = 'patroninfo~S3/' . $this->pnum . '/readinghistory';
+		$result = self::my_curl_exec($url_suffix);
+		$result = self::parse_patron_history_items($result['body']);
+		return $result;
+	}
+	/**
+	 * Parses through the raw return from cURL to formulate the array passed back by get_patron_history_items()
+	 *
+	 * @param string $itemlist_raw Raw output from cURL
+	 * @return array An array of items checked out.
+	 */
+	public function parse_patron_history_items($itemslist_raw) {
+		$regex = '%<input type="checkbox" name="(.+?)" />.+?patFuncTitle"><a href="/record=b(.+?)~S3">(.+?)</a>.+?patFuncAuthor">(.+?)</td>.+?patFuncDate">(.+?)</td>.+?"patFuncDetails">(.+?)</td>%s';
+		$count = preg_match_all($regex, $itemslist_raw, $rawmatch);
+		for ($i=0; $i < $count; $i++) {
+			$items[$i]['varname'] = trim($rawmatch[1][$i]);
+			$items[$i]['bnum'] = trim($rawmatch[2][$i]);
+			$items[$i]['title'] = trim($rawmatch[3][$i]);
+			$items[$i]['author'] = trim($rawmatch[4][$i]);
+			$items[$i]['date'] = trim($rawmatch[5][$i]);
+			$items[$i]['details'] = trim($rawmatch[6][$i]);
+		}
+		if (!$count) {
+			// return whether user is opted in or out of checkout history feature
+			$items = strpos($itemslist_raw, 'readinghistory/OptOut') !== false ? 'in' : 'out';
+		}
+		return $items;
+	}
+	/**
+	 * Opts user in or out of checkout history feature.
+	 * Opting out deletes the existing history.
+	 *
+	 * @param string $action whether to opt in or out
+	 * @return array An array of items checked out.
+	 */
+	public function toggle_patron_history($action) {
+		if ($action == 'in') {
+			$action = 'OptIn';
+			$goal = 'OptOut';
+		}
+		elseif ($action == 'out') {
+			$action = 'OptOut';
+			$goal = 'OptIn';
+			if (!$this->delete_patron_history(array('all'))) {
+				return false;
+			}
+		}
+		else {return false;}
+		$url_suffix = 'patroninfo~S3/' . $this->pnum . '/readinghistory/' . $action;
+		$result = self::my_curl_exec($url_suffix);
+		$success = strpos($result['body'], 'readinghistory/' . $goal) !== false;
+		return $success;
+	}
+	/**
+	 * Clear checked-out items from history.
+	 *
+	 * @param array $which list of items to sort (optional)
+	 * @return array An array of items checked out.
+	 */
+	public function delete_patron_history($which = array()) {
+		if (!count($which)) {return false;}
+		$url_suffix = 'patroninfo~S3/' . $this->pnum . '/readinghistory/';
+		if ($which[0] == 'all') {
+			$result = self::my_curl_exec($url_suffix . 'rah');
+			$success = strpos($result['body'], 'No Reading History Available' . $goal) !== false;
+		}
+		// TODO: add handling for individual items
+		return $success;
+	}
+	/**
 	 * Parses through the raw return from cURL to formulate the array passed back by get_patron_items()
 	 *
 	 * @param string $itemlist_raw Raw output from cURL
