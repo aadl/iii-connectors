@@ -1,8 +1,25 @@
 smaskit committed 7/29/2009
 
-iiitools_2007.php:
+--Made the following changes to enable freezing holds:
 
-	Added the following functions to enable checkout history: get_patron_history_items, parse_patron_history_items, toggle_patron_history, delete_patron_history
+	locum_iii_2007.php
+
+		Added the following functions: update_holdfreezes
+
+	iiitools_2007.php: 
+
+		get_patron_holds(): 1) modified regex to capture freeze checkbox, if any; 2) capture whether hold is frozen, and whether it can be frozen.
+		Add update_holdfreezes().
+
+--Made the following changes to enable checkout history:
+
+	locum_iii_2007.php
+
+		Added the following functions: patron_checkout_history, patron_checkout_history_toggle
+
+	iiitools_2007.php:
+
+		Added the following functions: get_patron_history_items, parse_patron_history_items, toggle_patron_history, delete_patron_history
 
 smaskit committed 7/22/2009
 

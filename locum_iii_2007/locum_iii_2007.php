@@ -326,6 +326,31 @@ class locum_iii_2007 {
 		if ($iii->catalog_login() == FALSE) { return FALSE; }
 		return $iii->get_patron_items();
 	}
+
+	/**
+	 * Returns an array of patron checkouts for history
+	 *
+	 * @param string $cardnum Patron barcode/card number
+	 * @param string $pin Patron pin/password
+	 * @return boolean|array Array of patron checkouts or FALSE if login fails
+	 */
+	public function patron_checkout_history($cardnum, $pin = NULL) {
+		$iii = $this->get_tools($cardnum, $pin);
+		$result = $iii ? $iii->get_patron_history_items() : false;
+		return $result;
+	}
+	/**
+	 * Opts patron in or out of checkout history
+	 *
+	 * @param string $cardnum Patron barcode/card number
+	 * @param string $pin Patron pin/password
+	 * @return boolean|array Array of patron checkouts or FALSE if login fails
+	 */
+	public function patron_checkout_history_toggle($cardnum, $pin = NULL, $action) {
+		$iii = $this->get_tools($cardnum, $pin);
+		$result = $iii ? $iii->toggle_patron_history($action) : false;
+		return $result;
+	}
 	
 	/**
 	 * Returns an array of patron holds
@@ -378,6 +403,24 @@ class locum_iii_2007 {
 		$iii->set_pin($pin);
 		if ($iii->catalog_login() == FALSE) { return FALSE; }
 		$iii->cancel_holds($items);
+		return TRUE;
+	}
+	/**
+	 * Places or removes freezes on holds
+	 *
+	 * @param string $cardnum Patron barcode/card number
+	 * @param string $pin Patron pin/password
+	 * @param array $holdfreezes_to_update Array of bnum => new status.
+	 * @return boolean TRUE or FALSE if it cannot cancel for some reason
+	 */
+	public function update_holdfreezes($cardnum, $pin, $holdfreezes_to_update) {
+		require_once('iiitools_2007.php');
+		$iii = new iiitools;
+		$iii->set_iiiserver($this->locum_config[ils_config][ils_server]);
+		$iii->set_cardnum($cardnum);
+		$iii->set_pin($pin);
+		if ($iii->catalog_login() == FALSE) { return FALSE; }
+		$iii->update_holdfreezes($holdfreezes_to_update);
 		return TRUE;
 	}
 

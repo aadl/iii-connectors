@@ -296,7 +296,7 @@ class iiitools {
 		$url_suffix = 'patroninfo/' . $this->pnum . '/holds';
 		$result = self::my_curl_exec($url_suffix);
 
-		$regex = '%<input type="checkbox" name="(.+?)" /></td>(.+?)patFuncTitle">(.+?)</td>(.+?)patFuncStatus">(.+?)</td>(.+?)patFuncPickup">(.+?)</td>(.+?)patFuncCancel">(.+?)</td>%s';
+		$regex = '/<input type="checkbox" name="(.+?)" \/><\/td>(.+?)patFuncTitle">(.+?)<\/td>(.+?)patFuncStatus">(.+?)<\/td>(.+?)patFuncPickup">(.+?)<\/td>(.+?)patFuncCancel">(.+?)<\/td>.*?patFuncFreeze"(.*?)<\/td>/is';
 	
 		$count = preg_match_all($regex, $result[body], $rawmatch);
 		for ($i=0; $i < $count; $i++) {
@@ -322,6 +322,8 @@ class iiitools {
 			if ($canceldate) {
 				$item[$i][canceldate] = $canceldate;
 			}
+			$item[$i]['is_frozen'] = (stristr($rawmatch[10][$i], 'checked') !== false);
+			$item[$i]['can_freeze'] = (stristr($rawmatch[10][$i], 'checkbox') !== false);
 		}
 		return $item;
 	}
@@ -409,6 +411,23 @@ class iiitools {
 		}
 		$cancelations = implode('&', $getvars);
 		$url_suffix .= '&' . $cancelations;
+		usleep(300000); // To make sure the record has been freed.
+		$result = self::my_curl_exec($url_suffix);
+		return $result; // TODO make the return info a little more useful - Handle errors, etc
+	}
+	/**
+	 * Cancel a hold on a particular item or list of items.
+	 *
+	 * @param array $holdvars Array of hold variables to cancel. Holdvars come from get_patron_holds().
+	 * @return array my_curl_exec result array
+	 */
+	public function update_holdfreezes($holdfreezes_to_update) {
+		$url_suffix = 'patroninfo~S13/' . $this->pnum . '/holds?updateholdssome=TRUE';
+		foreach ($holdfreezes_to_update as $bnum => $freeze) {
+			$getvars[] = 'freezeb' . $bnum . '=' . ($freeze == 'true' ? '1' : '0');
+		}
+		$updates = implode('&', $getvars);
+		$url_suffix .= '&' . $updates;
 		usleep(300000); // To make sure the record has been freed.
 		$result = self::my_curl_exec($url_suffix);
 		return $result; // TODO make the return info a little more useful - Handle errors, etc
