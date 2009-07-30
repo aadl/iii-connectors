@@ -622,6 +622,8 @@ class iiitools {
 	 */
 	public function date_to_timestamp($date_orig, $default_century = NULL) {
 		$date_arr = explode('-', trim($date_orig));
+		$month = (int) $date_arr[0];
+		$day = (int) $date_arr[1];
 		if (strlen(trim($date_arr[2])) == 2) {
 			if ($default_century) {
 				$year = $default_century + (int) trim($date_arr[2]);
@@ -647,7 +649,7 @@ class iiitools {
 	 */
 	public function my_curl_exec($url_suffix, $postvars = NULL, $no_loop = FALSE, $curl_timeout = 6, $login_query = FALSE) {
 
-		$agent = "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.4; en-US; rv:1.9.0.7) Gecko/2009021906 Firefox/3.0.7"; // You got a better idea?
+		$agent = "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.4; en-US; rv:1.9.0.7-locum) Gecko/2009021906 Firefox/3.0.7"; // You got a better idea?
 		if ($url_suffix[0] == '/') { $url_suffix = substr($url_suffix, 1); }
 		$curl_url = 'https://' . $this->iiiserver . '/' . $url_suffix;
 

@@ -43,9 +43,13 @@ class locum_iii_2007 {
 		$xrecord = @simplexml_load_file('http://' . $iii_webcat . ':' . $iii_webcat_port . '/xrecord=b' . $bnum);
 
 		// If there is no record, return false (weeded or non-existent)
-		if ($xrecord->NULLRECORD) { return FALSE; }
+		if ($xrecord->NULLRECORD) {
+			return FALSE;
+		}
 		if ($xrecord->VARFLD) {
-			if (!$xrecord->VARFLD[0]->MARCINFO) { return FALSE; }
+			if (!$xrecord->VARFLD[0]->MARCINFO) { 
+				return FALSE;
+			}
 		} else {
 			return FALSE;
 		}
