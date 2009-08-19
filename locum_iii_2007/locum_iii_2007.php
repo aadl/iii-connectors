@@ -51,7 +51,7 @@ class locum_iii_2007 {
 				return FALSE;
 			}
 		} else {
-			return FALSE;
+			return 'skip';
 		}
 
 		$bib_info_record = $xrecord->RECORDINFO;
