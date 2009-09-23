@@ -74,7 +74,7 @@ class iiitools {
 		self::set_cookie_file($cardnum, NULL);
 		curl_setopt ($this->ch, CURLOPT_COOKIEJAR, $this->cookie);
 		curl_setopt ($this->ch, CURLOPT_COOKIEFILE, $this->cookie);
-		$this->pnum = $this->patroninfo[RECORDNUM];
+		$this->pnum = $this->patroninfo['RECORDNUM'];
 	}
 
 	/**
@@ -140,7 +140,7 @@ class iiitools {
 		if (!isset($this->patroninfo)) { exit('Patron Info not yet initialized'); }
 		if (!$this->pin) { exit('PIN not yet set'); }
 		$form_url = "patroninfo/";
-		$postvars = 'name=' . $this->patroninfo[PATRNNAME] . '&code=' . $this->cardnum . '&pin=' . $this->pin;
+		$postvars = 'name=' . $this->patroninfo['PATRNNAME'] . '&code=' . $this->cardnum . '&pin=' . $this->pin;
 		return self::my_curl_exec($form_url, $postvars, NULL, NULL, TRUE);
 		return TRUE;
 	}
@@ -199,7 +199,7 @@ class iiitools {
 		}
 		if (!$count) {
 			// return whether user is opted in or out of checkout history feature
-			$items = strpos($itemslist_raw, 'readinghistory/OptOut') !== false ? 'in' : 'out';
+			$items = strpos($itemslist_raw, 'readinghistory/OptOut') !== FALSE ? 'in' : 'out';
 		}
 		return $items;
 	}
@@ -219,13 +219,13 @@ class iiitools {
 			$action = 'OptOut';
 			$goal = 'OptIn';
 			if (!$this->delete_patron_history(array('all'))) {
-				return false;
+				return FALSE;
 			}
 		}
-		else {return false;}
+		else { return FALSE; }
 		$url_suffix = 'patroninfo~S3/' . $this->pnum . '/readinghistory/' . $action;
 		$result = self::my_curl_exec($url_suffix);
-		$success = strpos($result['body'], 'readinghistory/' . $goal) !== false;
+		$success = strpos($result['body'], 'readinghistory/' . $goal) !== FALSE;
 		return $success;
 	}
 	/**
@@ -235,11 +235,11 @@ class iiitools {
 	 * @return array An array of items checked out.
 	 */
 	public function delete_patron_history($which = array()) {
-		if (!count($which)) {return false;}
+		if (!count($which)) { return FALSE; }
 		$url_suffix = 'patroninfo~S3/' . $this->pnum . '/readinghistory/';
 		if ($which[0] == 'all') {
 			$result = self::my_curl_exec($url_suffix . 'rah');
-			$success = strpos($result['body'], 'No Reading History Available' . $goal) !== false;
+			$success = strpos($result['body'], 'No Reading History Available' . $goal) !== FALSE;
 		}
 		// TODO: add handling for individual items
 		return $success;
@@ -257,30 +257,30 @@ class iiitools {
 
 	
 		for ($i=0; $i < $count; $i++) {
-			$item[$i][varname] = trim($rawmatch[1][$i]);
+			$item[$i]['varname'] = trim($rawmatch[1][$i]);
 		
-			$item[$i][inum] = substr(trim($rawmatch[2][$i]), 1);
-			$item[$i][bnum] = self::inum_to_bnum($item[$i][inum]);
+			$item[$i]['inum'] = substr(trim($rawmatch[2][$i]), 1);
+			$item[$i]['bnum'] = self::inum_to_bnum($item[$i]['inum']);
 
 			$title_mess = trim($rawmatch[4][$i]);
 			if (preg_match('%href(.+?)</a>%s', $title_mess, $sub_title_mess)) {
 				preg_match('%">(.+?)</a>%s', $sub_title_mess[0], $sub_title_mess_arr);
-				$item[$i][title] = trim($sub_title_mess_arr[1]);
-				$item[$i][ill] = 0;
+				$item[$i]['title'] = trim($sub_title_mess_arr[1]);
+				$item[$i]['ill'] = 0;
 			} else {
-				$item[$i][title] = trim($title_mess);
-				$item[$i][ill] = 1;
+				$item[$i]['title'] = trim($title_mess);
+				$item[$i]['ill'] = 1;
 			}
 
 			if (trim($rawmatch[11][$i])) {
 				preg_match('%Renewed (.+?) time%s', $rawmatch[11][$i], $num_renews_raw);
-				$item[$i][numrenews] = trim($num_renews_raw[1]) ? trim($num_renews_raw[1]) : 0;
+				$item[$i]['numrenews'] = trim($num_renews_raw[1]) ? trim($num_renews_raw[1]) : 0;
 			} else {
-				$item[$i][numrenews] = 0;
+				$item[$i]['numrenews'] = 0;
 			}
 
-			$item[$i][duedate] = self::date_to_timestamp(trim($rawmatch[8][$i]));
-			$item[$i][callnum] = trim($rawmatch[13][$i]);
+			$item[$i]['duedate'] = self::date_to_timestamp(trim($rawmatch[8][$i]));
+			$item[$i]['callnum'] = trim($rawmatch[13][$i]);
 		}
 		return $item;
 
@@ -298,32 +298,32 @@ class iiitools {
 
 		$regex = '/<input type="checkbox" name="(.+?)" \/><\/td>(.+?)patFuncTitle">(.+?)<\/td>(.+?)patFuncStatus">(.+?)<\/td>(.+?)patFuncPickup">(.+?)<\/td>(.+?)patFuncCancel">(.+?)<\/td>.*?patFuncFreeze"(.*?)<\/td>/is';
 	
-		$count = preg_match_all($regex, $result[body], $rawmatch);
+		$count = preg_match_all($regex, $result['body'], $rawmatch);
 		for ($i=0; $i < $count; $i++) {
-			$item[$i][varname] = trim($rawmatch[1][$i]);
+			$item[$i]['varname'] = trim($rawmatch[1][$i]);
 
-			if (!preg_match('%@%s', $item[$i][varname])) {
+			if (!preg_match('%@%s', $item[$i]['varname'])) {
 				preg_match('%item&(.+?)">(.+?)</a>%s', trim($rawmatch[3][$i]), $sub_title_mess_arr);
-				$item[$i][bnum] = trim($sub_title_mess_arr[1]);
-				$item[$i][title] = trim($sub_title_mess_arr[2]);
-				$item[$i][ill] = 0;
+				$item[$i]['bnum'] = trim($sub_title_mess_arr[1]);
+				$item[$i]['title'] = trim($sub_title_mess_arr[2]);
+				$item[$i]['ill'] = 0;
 			} else {
 				// ILL request
-				$item[$i][title] = trim($rawmatch[3][$i]);
-				$item[$i][ill] = 1;
+				$item[$i]['title'] = trim($rawmatch[3][$i]);
+				$item[$i]['ill'] = 1;
 			}
 			$status = trim($rawmatch[5][$i]);
 			if ((!preg_match('/of/i', $status)) && (!preg_match('/ready/i', $status)) && (!preg_match('/RECEIVED/i', $status))) { 
 				$status = "Waiting for your copy";
 			}
-			$item[$i][status] = $status;
-			$item[$i][pickuploc] = trim($rawmatch[7][$i]);
+			$item[$i]['status'] = $status;
+			$item[$i]['pickuploc'] = trim($rawmatch[7][$i]);
 			$canceldate = trim(str_replace('&nbsp;', '', $rawmatch[9][$i]));
 			if ($canceldate) {
-				$item[$i][canceldate] = $canceldate;
+				$item[$i]['canceldate'] = $canceldate;
 			}
-			$item[$i]['is_frozen'] = (stristr($rawmatch[10][$i], 'checked') !== false);
-			$item[$i]['can_freeze'] = (stristr($rawmatch[10][$i], 'checkbox') !== false);
+			$item[$i]['is_frozen'] = (stristr($rawmatch[10][$i], 'checked') !== FALSE);
+			$item[$i]['can_freeze'] = (stristr($rawmatch[10][$i], 'checkbox') !== FALSE);
 		}
 		return $item;
 	}
@@ -338,7 +338,7 @@ class iiitools {
 	public function place_hold($bnum = NULL, $inum = NULL, $pickup_loc = NULL) {
 
 		$url_suffix = 'search~S3/.b' . $bnum . '/.b' . $bnum . '/1,1,1,B/request~b' . $bnum;
-		$postvars[] = 'name=' . urlencode($this->patroninfo[PATRNNAME]);
+		$postvars[] = 'name=' . urlencode($this->patroninfo['PATRNNAME']);
 		$postvars[] = 'code=' . $this->cardnum;
 		$postvars[] = 'pin=' . $this->pin;
 		$postvars[] = 'neededby_Month=' . date('m');
@@ -356,24 +356,24 @@ class iiitools {
 		
 		$result = self::my_curl_exec($url_suffix, $post);
 		
-		if (preg_match('/Your request for(.*?)was successful/is', $result[body])) {
-			$result[success] = 1;
+		if (preg_match('/Your request for(.*?)was successful/is', $result['body'])) {
+			$result['success'] = 1;
 		} else {
-			$result[success] = 0;
+			$result['success'] = 0;
 		}
 		
-		if (preg_match('/<font color="red" size="(.+?)">(.+?)<\/font>/is', $result[body], $error_match)) {
-			$result[error] = trim($error_match[2]);
+		if (preg_match('/<font color="red" size="(.+?)">(.+?)<\/font>/is', $result['body'], $error_match)) {
+			$result['error'] = trim($error_match[2]);
 		}
-		if (preg_match('/Choose one item from the list below/is', $result[body])) {
-			preg_match_all('/<tr  class="bibItemsEntry">(.+?)<\/td>(.+?)<!-- field 1 -->&nbsp; (.+?)<\/td>(.+?)<!-- field C -->&nbsp;(.+?)&nbsp; <!-- field v -->(.*?)&nbsp;(.+?)field \% -->&nbsp;(.+?)</is', $result[body], $items_match_raw);
+		if (preg_match('/Choose one item from the list below/is', $result['body'])) {
+			preg_match_all('/<tr  class="bibItemsEntry">(.+?)<\/td>(.+?)<!-- field 1 -->&nbsp; (.+?)<\/td>(.+?)<!-- field C -->&nbsp;(.+?)&nbsp; <!-- field v -->(.*?)&nbsp;(.+?)field \% -->&nbsp;(.+?)</is', $result['body'], $items_match_raw);
 			$num_items = count($items_match_raw[0]);
 			for ($i = 0; $i < $num_items; $i++) {
 				preg_match('/value="(.+?)"/is', $items_match_raw[1][$i], $inum_match);
-				$result[selection][$i][varname] = trim($inum_match[1]);
-				$result[selection][$i][location] = trim($items_match_raw[3][$i]);
-				$result[selection][$i][callnum] = trim($items_match_raw[5][$i]) . ' ' . trim($items_match_raw[6][$i]);
-				$result[selection][$i][status] = trim($items_match_raw[8][$i]);
+				$result['selection'][$i]['varname'] = trim($inum_match[1]);
+				$result['selection'][$i]['location'] = trim($items_match_raw[3][$i]);
+				$result['selection'][$i]['callnum'] = trim($items_match_raw[5][$i]) . ' ' . trim($items_match_raw[6][$i]);
+				$result['selection'][$i]['status'] = trim($items_match_raw[8][$i]);
 			}
 		}
 		// handle if user needs to select a location to pickup item
@@ -453,7 +453,7 @@ class iiitools {
 		}
 		usleep(300000); // To make sure the record has been freed.
 		$result = self::my_curl_exec($url_suffix);
-		return self::parse_patron_renews($result[body], $renew_arg);
+		return self::parse_patron_renews($result['body'], $renew_arg);
 	
 	}
 
@@ -478,15 +478,15 @@ class iiitools {
 				preg_match($regex, $renewlist_raw, $rawmatch);
 				$extra = $rawmatch[3];
 				if (preg_match('/Renewed(.*?)time/i', $extra, $renew_match)) { 
-					$renew_res[$inum][num_renews] = (int) trim($renew_match[1]);
+					$renew_res[$inum]['num_renews'] = (int) trim($renew_match[1]);
 				} else {
-					$renew_res[$inum][num_renews] = 0;
+					$renew_res[$inum]['num_renews'] = 0;
 				}
 				if (preg_match('/color=\"red\">(.*?)</i', $extra, $error_match)) {
-					$renew_res[$inum][error] = ucwords(strtolower(trim($error_match[1])));
+					$renew_res[$inum]['error'] = ucwords(strtolower(trim($error_match[1])));
 				}
-				$renew_res[$inum][varname] = $varname;
-				$renew_res[$inum][new_duedate] = self::date_to_timestamp($rawmatch[2]);
+				$renew_res[$inum]['varname'] = $varname;
+				$renew_res[$inum]['new_duedate'] = self::date_to_timestamp($rawmatch[2]);
 			}
 		// If remewing all items
 		} else {
@@ -497,19 +497,19 @@ class iiitools {
 				$inums = $rawmatch[2];
 				foreach ($rawmatch[5] as $key => $extra) {
 					if (preg_match('/Renewed(.*?)time/i', $extra, $renew_match)) {
-						$renew_res[$inums[$key]][num_renews] = (int) trim($renew_match[1]);
+						$renew_res[$inums[$key]]['num_renews'] = (int) trim($renew_match[1]);
 					} else {
-						$renew_res[$inums[$key]][num_renews] = 0;
+						$renew_res[$inums[$key]]['num_renews'] = 0;
 					}
 					if (preg_match('/color=\"red\">(.*?)</i', $extra, $error_match)) {
-						$renew_res[$inums[$key]][error] = ucwords(strtolower(trim($error_match[1])));
+						$renew_res[$inums[$key]]['error'] = ucwords(strtolower(trim($error_match[1])));
 					}
 				}
 				foreach ($rawmatch[2] as $key => $inum) {
-					$renew_res[$inum][varname] = trim($varnames[$key]);
+					$renew_res[$inum]['varname'] = trim($varnames[$key]);
 				}
 				foreach ($rawmatch[4] as $key => $due) {
-					$renew_res[$inums[$key]][new_duedate] = self::date_to_timestamp($due);
+					$renew_res[$inums[$key]]['new_duedate'] = self::date_to_timestamp($due);
 				}
 			} else {
 				return FALSE;
@@ -524,9 +524,9 @@ class iiitools {
 	* @return string HTML body from the fine payment screen
 	*/
 	function get_patron_fines() {
-		$url_suffix = 'webapp/iii/ecom/pay.do?scope=3&ptype=' . $this->patroninfo[PTYPE] . '&tty=300';
+		$url_suffix = 'webapp/iii/ecom/pay.do?scope=3&ptype=' . $this->patroninfo['PTYPE'] . '&tty=300';
 		$result = self::my_curl_exec($url_suffix);
-		return self::parse_patron_fines($result[body]);
+		return self::parse_patron_fines($result['body']);
 	}
 
 	/**
@@ -538,12 +538,12 @@ class iiitools {
 		$regex = '%type="checkbox" name="selectedFees" value="(.+?)"(.+?)>(.+?)\$(.+?)<%s';
 		$fines = array();
 		preg_match('%name="key" value="(.+?)"%s', $body, $keymatch);
-		$fines[sessionkey] = trim($keymatch[1]);
+		$fines['sessionkey'] = trim($keymatch[1]);
 		$count = preg_match_all($regex, $body, $rawmatch);
 		for ($i=0; $i < $count; $i++) {
-			$fines[items][$i][varname] = trim($rawmatch[1][$i]);
-			$fines[items][$i][desc] = trim($rawmatch[3][$i]);
-			$fines[items][$i][amount] = (float) trim($rawmatch[4][$i]);
+			$fines['items'][$i]['varname'] = trim($rawmatch[1][$i]);
+			$fines['items'][$i]['desc'] = trim($rawmatch[3][$i]);
+			$fines['items'][$i]['amount'] = (float) trim($rawmatch[4][$i]);
 		}
 		return $fines;
 	}
@@ -570,7 +570,7 @@ class iiitools {
 	function pay_fine($payment_arr) {
 		
 		$fines = self::get_patron_fines();
-		$sessionkey = $fines[sessionkey];
+		$sessionkey = $fines['sessionkey'];
 		$url_suffix_stage1 = 'webapp/iii/ecom/validatePay.do';
 		$url_suffix_stage2 = 'webapp/iii/ecom/submitPay.do';
 
@@ -591,14 +591,14 @@ class iiitools {
 		usleep(500000); // To make sure the record has been freed.
 
 		// may vary depending on how OPAC/ILS is set up (TODO: turn into config setting?)
-		if ((preg_match('%Your payment has been approved%s', $pay_result[body])) ||
-			(preg_match('%Your payment has been accepted%s', $pay_result[body]))) {
-			$result_arr[approved] = 1;
+		if ((preg_match('%Your payment has been approved%s', $pay_result['body'])) ||
+			(preg_match('%Your payment has been accepted%s', $pay_result['body']))) {
+			$result_arr['approved'] = 1;
 		} else {
-			$result_arr[approved] = 0;
-			$is_msg = preg_match('%key="creditForm.error"\/-->(.+?)<(.+?)error">(.+?)<%s', $pay_result[body], $err_match);
-			$result_arr[error] = trim($err_match[3]);
-			$result_arr[reason] = trim($err_match[1]);
+			$result_arr['approved'] = 0;
+			$is_msg = preg_match('%key="creditForm.error"\/-->(.+?)<(.+?)error">(.+?)<%s', $pay_result['body'], $err_match);
+			$result_arr['error'] = trim($err_match[3]);
+			$result_arr['reason'] = trim($err_match[1]);
 		}
 		return $result_arr;
 	}
@@ -609,7 +609,7 @@ class iiitools {
 	public function inum_to_bnum($inum) {
 		$url_suffix = 'record=i' . $inum;
 		$record_result = self::my_curl_exec($url_suffix);
-		preg_match('%">B(.*?)<\/%s', $record_result[body], $bnum_raw_match);
+		preg_match('%">B(.*?)<\/%s', $record_result['body'], $bnum_raw_match);
 		return substr(trim($bnum_raw_match[1]), 0, -1);
 	}
 

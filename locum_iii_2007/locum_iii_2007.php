@@ -24,7 +24,6 @@ class locum_iii_2007 {
 	 */
 	public function __construct() {
 		require_once('patronapi.php');
-		$this->locum_iii_config = parse_ini_file('config/locum_iii_config.ini', true);
 	}
 
 	/**
@@ -36,8 +35,8 @@ class locum_iii_2007 {
 	 */
 	public function scrape_bib($bnum, $skip_cover = FALSE) {
 
-		$iii_webcat = $this->locum_config[ils_config][ils_server];
-		$iii_webcat_port = $this->locum_config[ils_config][ils_harvest_port];
+		$iii_webcat = $this->locum_config['ils_config']['ils_server'];
+		$iii_webcat_port = $this->locum_config['ils_config']['ils_harvest_port'];
 
 		$bnum = trim($bnum);
 
@@ -61,85 +60,95 @@ class locum_iii_2007 {
 		unset($xrecord);
 
 		// Process record information
-		$bib[bnum] = $bnum;
-		$bib[bib_created] = self::fixdate($bib_info_record->CREATEDATE);
-		$bib[bib_lastupdate] = self::fixdate($bib_info_record->LASTUPDATEDATE);
-		$bib[bib_prevupdate] = self::fixdate($bib_info_record->PREVUPDATEDATE);
-		$bib[bib_revs] = (int) $bib_info_record->REVISIONS;
+		$bib['bnum'] = $bnum;
+		$bib['bib_created'] = self::fixdate($bib_info_record->CREATEDATE);
+		$bib['bib_lastupdate'] = self::fixdate($bib_info_record->LASTUPDATEDATE);
+		$bib['bib_prevupdate'] = self::fixdate($bib_info_record->PREVUPDATEDATE);
+		$bib['bib_revs'] = (int) $bib_info_record->REVISIONS;
 
 		// Process local record data
 		foreach ($bib_info_local as $bil_obj) {
 			switch (trim($bil_obj->FIXLABEL)) {
 				case 'LANG':
-					$bib[lang] = trim($bil_obj->FIXVALUE);
+					$bib['lang'] = trim($bil_obj->FIXVALUE);
 					break;
 				case 'LOCATION':
-					$bib[loc_code] = trim($bil_obj->FIXVALUE);
+					$bib['loc_code'] = trim($bil_obj->FIXVALUE);
 					break;
 				case 'MAT TYPE':
-					$bib[mat_code] = trim($bil_obj->FIXVALUE);
+					$bib['mat_code'] = trim($bil_obj->FIXVALUE);
+					break;
+				case 'BCODE3':
+					$bib['bcode3'] = trim($bil_obj->FIXVALUE);
 					break;
 
 			}
+		}
+		
+		// Handle Suppression
+		if (in_array($bib['bcode3'], parent::csv_parser($this->locum_config['ils_custom_config']['suppress_codes']))) {
+			return FALSE;
 		}
 
 		// Process MARC fields
 
 		// Process Author information
-		$bib[author] = '';
+		$bib['author'] = '';
 		$author_arr = self::prepare_marc_values($bib_info_marc['100'], array('a','b','c','d'));
-		$bib[author] = $author_arr[0];
+		$bib['author'] = $author_arr[0];
 
 		// In no author info, we'll go for the 110 field
-		if (!$bib[author]) {
+		if (!$bib['author']) {
 			$author_110 = self::prepare_marc_values($bib_info_marc['110'], array('a'));
-			$bib[author] = $author_110[0];
+			$bib['author'] = $author_110[0];
 		}
 
 		// Additional author information
-		$bib[addl_author] = '';
+		$bib['addl_author'] = '';
 		$addl_author = self::prepare_marc_values($bib_info_marc['700'], array('a','b','c','d'));
 		if (is_array($addl_author)) {
-			$bib[addl_author] = serialize($addl_author);
+			$bib['addl_author'] = serialize($addl_author);
 		}
 
 		// In no additional author info, we'll go for the 710 field
-		if (!$bib[addl_author]) {
+		if (!$bib['addl_author']) {
 			$author_710 = self::prepare_marc_values($bib_info_marc['710'], array('a'));
 			if (is_array($author_710)) {
-				$bib[addl_author] = serialize($author_710);
+				$bib['addl_author'] = serialize($author_710);
 			}
 		}
 
 		// Title information
-		$bib[title] = '';
+		$bib['title'] = '';
 		$title = self::prepare_marc_values($bib_info_marc['245'], array('a','b'));
 		if (substr($title[0], -1) == '/') { $title[0] = trim(substr($title[0], 0, -1)); }
-		$bib[title] = trim($title[0]);
+		$bib['title'] = trim($title[0]);
 
 		// Title medium information
-		$bib[title_medium] = '';
+		$bib['title_medium'] = '';
 		$title_medium = self::prepare_marc_values($bib_info_marc['245'], array('h'));
 		if ($title_medium[0]) {
 			if (preg_match('/\[(.*?)\]/', $title_medium[0], $medium_match)) {
-				$bib[title_medium] = $medium_match[1];
+				$bib['title_medium'] = $medium_match[1];
 			}
 		}
 		
 		// Edition information
-		$bib[edition] = '';
+		$bib['edition'] = '';
 		$edition = self::prepare_marc_values($bib_info_marc['250'], array('a'));
-		$bib[edition] = trim($edition[0]);
+		$bib['edition'] = trim($edition[0]);
 
 		// Series information
-		$bib[series] = '';
+		$bib['series'] = '';
 		$series = self::prepare_marc_values($bib_info_marc['490'], array('a','v'));
 		if (!$series[0]) { $series = self::prepare_marc_values($bib_info_marc['440'], array('a','v')); }
 		if (!$series[0]) { $series = self::prepare_marc_values($bib_info_marc['400'], array('a','v')); }
 		if (!$series[0]) { $series = self::prepare_marc_values($bib_info_marc['410'], array('a','v')); }
+		if (!$series[0]) { $series = self::prepare_marc_values($bib_info_marc['730'], array('a','v')); }
 		if (!$series[0]) { $series = self::prepare_marc_values($bib_info_marc['800'], array('a','v')); }
 		if (!$series[0]) { $series = self::prepare_marc_values($bib_info_marc['810'], array('a','v')); }
-		$bib[series] = $series[0];
+		if (!$series[0]) { $series = self::prepare_marc_values($bib_info_marc['830'], array('a','v')); }
+		$bib['series'] = $series[0];
 
 		// Call number
 		$callnum = '';
@@ -149,45 +158,51 @@ class locum_iii_2007 {
 				$callnum .= $cn_sub . ' ';
 			}
 		}
-		$bib[callnum] = trim($callnum);
+		$bib['callnum'] = trim($callnum);
 	
 		// Publication information
-		$bib[pub_info] = '';
+		$bib['pub_info'] = '';
 		$pub_info = self::prepare_marc_values($bib_info_marc['260'], array('a','b','c'));
-		$bib[pub_info] = $pub_info[0];
+		$bib['pub_info'] = $pub_info[0];
 
 		// Publication year
-		$bib[pub_year] = '';
+		$bib['pub_year'] = '';
 		$pub_year = self::prepare_marc_values($bib_info_marc['260'], array('c'));
 		$c_arr = explode(',', $pub_year[0]);
 		$c_key = count($c_arr) - 1;
-		$bib[pub_year] = substr(ereg_replace("[^0-9]", '', $c_arr[$c_key]), -4);
+		$bib['pub_year'] = substr(ereg_replace("[^0-9]", '', $c_arr[$c_key]), -4);
 
 		// ISBN / Std. number
-		$bib[stdnum] = '';
+		$bib['stdnum'] = '';
 		$stdnum = self::prepare_marc_values($bib_info_marc['020'], array('a'));
-		$bib[stdnum] = $stdnum[0];
+		$bib['stdnum'] = $stdnum[0];
+		
+		// UPC
+		$bib['upc'] = '';
+		$upc = self::prepare_marc_values($bib_info_marc['024'], array('a'));
+		$bib['upc'] = $upc[0];
+		if($bib['upc'] == '') { $bib[upc] = "000000000000"; }
 
 		// Grab the cover image URL if we're doing that
-		$bib[cover_img] = '';
+		$bib['cover_img'] = '';
 		if ($skip_cover != TRUE) {
-			if ($bib[stdnum]) { $bib[cover_img] = locum_server::get_cover_img($bib[stdnum]); }
+			if ($bib['stdnum']) { $bib['cover_img'] = locum_server::get_cover_img($bib['stdnum']); }
 		}
 
 		// LCCN
-		$bib[lccn] = '';
+		$bib['lccn'] = '';
 		$lccn = self::prepare_marc_values($bib_info_marc['010'], array('a'));
-		$bib[lccn] = $lccn[0];
+		$bib['lccn'] = $lccn[0];
 
 		// Description
-		$bib[descr] = '';
+		$bib['descr'] = '';
 		$descr = self::prepare_marc_values($bib_info_marc['300'], array('a','b','c'));
-		$bib[descr] = $descr[0];
+		$bib['descr'] = $descr[0];
 
 		// Notes
 		$notes = array();
-		$bib[notes] = '';
-		$notes_tags = array('500', '520');
+		$bib['notes'] = '';
+		$notes_tags = array('500','505','511','520');
 		foreach ($notes_tags as $notes_tag) {
 			$notes_arr = self::prepare_marc_values($bib_info_marc[$notes_tag], array('a'));
 			if (is_array($notes_arr)) {
@@ -196,7 +211,7 @@ class locum_iii_2007 {
 				}
 			}
 		}
-		if (count($notes)) { $bib[notes] = serialize($notes); }
+		if (count($notes)) { $bib['notes'] = serialize($notes); }
 
 		// Subject headings
 		$subjects = array();
@@ -214,8 +229,8 @@ class locum_iii_2007 {
 				}
 			}
 		}
-		$bib[subjects] = '';
-		if (count($subjects)) { $bib[subjects] = $subjects; }
+		$bib['subjects'] = '';
+		if (count($subjects)) { $bib['subjects'] = $subjects; }
 		
 		unset($bib_info_marc);
 		return $bib;
@@ -299,22 +314,22 @@ class locum_iii_2007 {
 	 */
 	public function patron_info($pid) {
 		$papi = new iii_patronapi;
-		$papi->iiiserver = $this->locum_config[ils_config][ils_server];
+		$papi->iiiserver = $this->locum_config['ils_config']['ils_server'];
 		$papi_data = $papi->get_patronapi_data($pid);
 
 		if (!$papi_data) { return FALSE; }
 
-		$pdata[pnum] = $papi_data[RECORDNUM];
-		$pdata[cardnum] = $papi_data[PBARCODE];
-		$pdata[checkouts] = $papi_data[CURCHKOUT];
-		$pdata[homelib] = $papi_data[HOMELIBR];
-		$pdata[balance] = (float) preg_replace('%\$%s', '', $papi_data[MONEYOWED]);
-		$pdata[expires] = $papi_data[EXPDATE] ? self::date_to_timestamp($papi_data[EXPDATE], 2000) : NULL;
-		$pdata[name] = $papi_data[PATRNNAME];
-		$pdata[address] = preg_replace('%\$%s', "\n", $papi_data[ADDRESS]);
-		$pdata[tel1] = $papi_data[TELEPHONE];
-		if ($papi_data[TELEPHONE2]) { $pdata[tel2] = $papi_data[TELEPHONE2]; }
-		$pdata[email] = $papi_data[EMAILADDR];
+		$pdata['pnum'] = $papi_data['RECORDNUM'];
+		$pdata['cardnum'] = $papi_data['PBARCODE'];
+		$pdata['checkouts'] = $papi_data['CURCHKOUT'];
+		$pdata['homelib'] = $papi_data['HOMELIBR'];
+		$pdata['balance'] = (float) preg_replace('%\$%s', '', $papi_data['MONEYOWED']);
+		$pdata['expires'] = $papi_data['EXPDATE'] ? self::date_to_timestamp($papi_data['EXPDATE'], 2000) : NULL;
+		$pdata['name'] = $papi_data['PATRNNAME'];
+		$pdata['address'] = preg_replace('%\$%s', "\n", $papi_data['ADDRESS']);
+		$pdata['tel1'] = $papi_data['TELEPHONE'];
+		if ($papi_data['TELEPHONE2']) { $pdata['tel2'] = $papi_data['TELEPHONE2']; }
+		$pdata['email'] = $papi_data['EMAILADDR'];
 
 		return $pdata;
 	}
@@ -329,7 +344,7 @@ class locum_iii_2007 {
 	public function patron_checkouts($cardnum, $pin = NULL) {
 		require_once('iiitools_2007.php');
 		$iii = new iiitools;
-		$iii->set_iiiserver($this->locum_config[ils_config][ils_server]);
+		$iii->set_iiiserver($this->locum_config['ils_config']['ils_server']);
 		$iii->set_cardnum($cardnum);
 		$iii->set_pin($pin);
 		if ($iii->catalog_login() == FALSE) { return FALSE; }
@@ -345,7 +360,7 @@ class locum_iii_2007 {
 	 */
 	public function patron_checkout_history($cardnum, $pin = NULL) {
 		$iii = $this->get_tools($cardnum, $pin);
-		$result = $iii ? $iii->get_patron_history_items() : false;
+		$result = $iii ? $iii->get_patron_history_items() : FALSE;
 		return $result;
 	}
 	/**
@@ -357,7 +372,7 @@ class locum_iii_2007 {
 	 */
 	public function patron_checkout_history_toggle($cardnum, $pin = NULL, $action) {
 		$iii = $this->get_tools($cardnum, $pin);
-		$result = $iii ? $iii->toggle_patron_history($action) : false;
+		$result = $iii ? $iii->toggle_patron_history($action) : FALSE;
 		return $result;
 	}
 	
@@ -371,7 +386,7 @@ class locum_iii_2007 {
 	public function patron_holds($cardnum, $pin = NULL) {
 		require_once('iiitools_2007.php');
 		$iii = new iiitools;
-		$iii->set_iiiserver($this->locum_config[ils_config][ils_server]);
+		$iii->set_iiiserver($this->locum_config['ils_config']['ils_server']);
 		$iii->set_cardnum($cardnum);
 		$iii->set_pin($pin);
 		if ($iii->catalog_login() == FALSE) { return FALSE; }
@@ -389,7 +404,7 @@ class locum_iii_2007 {
 	public function renew_items($cardnum, $pin = NULL, $items = NULL) {
 		require_once('iiitools_2007.php');
 		$iii = new iiitools;
-		$iii->set_iiiserver($this->locum_config[ils_config][ils_server]);
+		$iii->set_iiiserver($this->locum_config['ils_config']['ils_server']);
 		$iii->set_cardnum($cardnum);
 		$iii->set_pin($pin);
 		if ($iii->catalog_login() == FALSE) { return FALSE; }
@@ -407,7 +422,7 @@ class locum_iii_2007 {
 	public function cancel_holds($cardnum, $pin = NULL, $items = NULL) {
 		require_once('iiitools_2007.php');
 		$iii = new iiitools;
-		$iii->set_iiiserver($this->locum_config[ils_config][ils_server]);
+		$iii->set_iiiserver($this->locum_config['ils_config']['ils_server']);
 		$iii->set_cardnum($cardnum);
 		$iii->set_pin($pin);
 		if ($iii->catalog_login() == FALSE) { return FALSE; }
@@ -425,7 +440,7 @@ class locum_iii_2007 {
 	public function update_holdfreezes($cardnum, $pin, $holdfreezes_to_update) {
 		require_once('iiitools_2007.php');
 		$iii = new iiitools;
-		$iii->set_iiiserver($this->locum_config[ils_config][ils_server]);
+		$iii->set_iiiserver($this->locum_config['ils_config']['ils_server']);
 		$iii->set_cardnum($cardnum);
 		$iii->set_pin($pin);
 		if ($iii->catalog_login() == FALSE) { return FALSE; }
@@ -446,7 +461,7 @@ class locum_iii_2007 {
 	public function place_hold($cardnum, $bnum, $inum = NULL, $pin = NULL, $pickup_loc = NULL) {
 		require_once('iiitools_2007.php');
 		$iii = new iiitools;
-		$iii->set_iiiserver($this->locum_config[ils_config][ils_server]);
+		$iii->set_iiiserver($this->locum_config['ils_config']['ils_server']);
 		$iii->set_cardnum($cardnum);
 		$iii->set_pin($pin);
 		if ($iii->catalog_login() == FALSE) { return FALSE; }
@@ -463,12 +478,12 @@ class locum_iii_2007 {
 	public function patron_fines($cardnum, $pin = NULL) {
 		require_once('iiitools_2007.php');
 		$iii = new iiitools;
-		$iii->set_iiiserver($this->locum_config[ils_config][ils_server]);
+		$iii->set_iiiserver($this->locum_config['ils_config']['ils_server']);
 		$iii->set_cardnum($cardnum);
 		$iii->set_pin($pin);
 		if ($iii->catalog_login() == FALSE) { return FALSE; }
 		$fines = $iii->get_patron_fines();
-		return $fines[items];
+		return $fines['items'];
 	}
 	
 	/**
@@ -481,22 +496,22 @@ class locum_iii_2007 {
 	public function pay_patron_fines($cardnum, $pin = NULL, $payment_details) {
 		require_once('iiitools_2007.php');
 		$iii = new iiitools;
-		$iii->set_iiiserver($this->locum_config[ils_config][ils_server]);
+		$iii->set_iiiserver($this->locum_config['ils_config']['ils_server']);
 		$iii->set_cardnum($cardnum);
 		$iii->set_pin($pin);
 		if ($iii->catalog_login() == FALSE) { return FALSE; }
-		$iii_payment_details[varnames] = $payment_details[varnames];
-		$iii_payment_details[amount] = '$' . number_format($payment_details[total], 2);
-		$iii_payment_details[name] = $payment_details[name];
-		$iii_payment_details[address1] = $payment_details[address1];
-		$iii_payment_details[city] = $payment_details[city];
-		$iii_payment_details[state] = $payment_details[state];
-		$iii_payment_details[zip] = $payment_details[zip];
-		$iii_payment_details[email] = $payment_details[email];
-		$iii_payment_details[ccnum] = $payment_details[ccnum];
-		$iii_payment_details[ccexp_month] = $payment_details[ccexpmonth];
-		$iii_payment_details[ccexp_year] = $payment_details[ccexpyear];
-		$iii_payment_details[cvv] = $payment_details[ccseccode];
+		$iii_payment_details['varnames'] = $payment_details['varnames'];
+		$iii_payment_details['amount'] = '$' . number_format($payment_details['total'], 2);
+		$iii_payment_details['name'] = $payment_details['name'];
+		$iii_payment_details['address1'] = $payment_details['address1'];
+		$iii_payment_details['city'] = $payment_details['city'];
+		$iii_payment_details['state'] = $payment_details['state'];
+		$iii_payment_details['zip'] = $payment_details['zip'];
+		$iii_payment_details['email'] = $payment_details['email'];
+		$iii_payment_details['ccnum'] = $payment_details['ccnum'];
+		$iii_payment_details['ccexp_month'] = $payment_details['ccexpmonth'];
+		$iii_payment_details['ccexp_year'] = $payment_details['ccexpyear'];
+		$iii_payment_details['cvv'] = $payment_details['ccseccode'];
 
 		$payment_result = $iii->pay_fine($iii_payment_details);
 		return $payment_result;
@@ -522,8 +537,14 @@ class locum_iii_2007 {
 					if (is_array($subvalue)) {
 						foreach ($subvalue as $sub_subvalue) {
 							if ($i[$subkey]) { $pad[$subkey] = $delimiter; }
-							$sv_tmp = preg_replace('/\{(.*?)\}/', '', trim($sub_subvalue));
-							$sv_tmp = trim(preg_replace('/</i', '"', $sv_tmp));
+							$sv_tmp = trim($sub_subvalue);
+							$matches = array();
+							preg_match_all('/\{u[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]\}/', $sv_tmp, $matches);
+							foreach ($matches[0] as $match_string) {
+								$code = hexdec($match_string);
+								$character = html_entity_decode("&#$code;", ENT_NOQUOTES, 'UTF-8');
+								$sv_tmp = str_replace($match_string, $character, $sv_tmp);
+							}
 							if (trim($sub_subvalue)) { $marc_values[$subkey] .= $pad[$subkey] . $sv_tmp; }
 							$i[$subkey] = 1;
 						}
@@ -532,10 +553,14 @@ class locum_iii_2007 {
 						
 						// This is a workaround until I can figure out wtf III is doing with encoding.  For now
 						// there will be no extended characters:
-						$sv_tmp = preg_replace('/\{(.*?)\}/', '', trim($subvalue));
-
-						// Fix odd quote issues.  May be a club method of doing this, but oh well.
-						$sv_tmp = trim(preg_replace('/</i', '"', $sv_tmp));
+						$sv_tmp = trim($subvalue);
+						$matches = array();
+						preg_match_all('/\{u[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]\}/', $sv_tmp, $matches);
+						foreach ($matches[0] as $match_string) {
+							$code = hexdec($match_string);
+							$character = html_entity_decode("&#$code;", ENT_NOQUOTES, 'UTF-8');
+							$sv_tmp = str_replace($match_string, $character, $sv_tmp);
+						}
 
 						if (trim($subvalue)) { $marc_values[$subkey] .= $pad[$subkey] . $sv_tmp; }
 						$i[$subkey] = 1;
@@ -567,12 +592,12 @@ class locum_iii_2007 {
 			if (count($bim_obj->MARCSUBFLD) == 1) {
 				// Only one subfield value
 				$subfld = get_object_vars($bim_obj->MARCSUBFLD);
-				$marc_sub[$marc_num][trim($subfld[SUBFIELDINDICATOR])][$bim_item] = trim($subfld[SUBFIELDDATA]);
+				$marc_sub[$marc_num][trim($subfld['SUBFIELDINDICATOR'])][$bim_item] = trim($subfld['SUBFIELDDATA']);
 			} else if (count($bim_obj->MARCSUBFLD) > 1) {
 				// Multiple subfield values
 				for ($i = 0; $i < count($bim_obj->MARCSUBFLD); $i++) {
 					$subfld = get_object_vars($bim_obj->MARCSUBFLD[$i]);
-					$marc_sub[$marc_num][trim($subfld[SUBFIELDINDICATOR])][$bim_item][] = trim($subfld[SUBFIELDDATA]);
+					$marc_sub[$marc_num][trim($subfld['SUBFIELDINDICATOR'])][$bim_item][] = trim($subfld['SUBFIELDDATA']);
 				}
 			}
 			$bim_item++;
