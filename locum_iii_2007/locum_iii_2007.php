@@ -24,6 +24,7 @@ class locum_iii_2007 {
 	 */
 	public function __construct() {
 		require_once('patronapi.php');
+		$this->locum_config = @array_merge($this->locum_config, @parse_ini_file('config/locum_iii_config.ini', true));
 	}
 
 	/**
@@ -246,64 +247,74 @@ class locum_iii_2007 {
 		$iii_webcat = $this->locum_config['ils_config']['ils_server'];
 		$iii_webcat_port = $this->locum_config['ils_config']['ils_harvest_port'];
 		$avail_token = locum::csv_parser($this->locum_config['ils_custom_config']['iii_available_token']);
-		$locations_arr = array_flip($this->locum_iii_config['iii_location_codes']);
-
+		$default_age = $this->locum_config['ils_config']['iii_custom_config']['default_age'];
+		$loc_codes_flipped = array_flip($this->locum_iii_config['iii_location_codes']);
 		$bnum = trim($bnum);
-		$url = 'http://' . $iii_webcat . '/record=b' . $bnum . '~S3';
 
-		$avail_page_raw = utf8_encode(file_get_contents($url));
-		
-		// Reserves & totals Regex
-		$regex_r1 = '%<span class="bibHolds">(.*?)</span>%s';
-		preg_match($regex_r1, $avail_page_raw, $match_r1);
+		// Grab Hold Numbers
+		$url = 'http://' . $iii_webcat . '/search~24/.b' . $bnum . '/.b' . $bnum . '/1,1,1,B/marc~' . $bnum . '&FF=&1,0,';
+		$hold_page_raw = utf8_encode(file_get_contents($url));
 
-		$regex_r2 = '%(.*?)hold(.*?)of(.*?)cop%s';
-		preg_match($regex_r2, trim($match_r1[1]), $match_r2);
-		$item_status_result['holds'] = (int) trim($match_r2[1]) ? (int) trim($match_r2[1]) : 0;
-		$item_status_result['total'] = (int) trim($match_r2[3]) ? (int) trim($match_r2[3]) : 0;
+		// Reserves Regex
+		$regex_r = '/(?<hold_num>\d+) hold/';
+		preg_match($regex_r, $hold_page_raw, $match_r);
+		$avail_array['holds'] = $match_r['hold_num'] ? $match_r['hold_num'] : 0;
 
-		if (preg_match('%View additional copies%s', $avail_page_raw)) {
-			$url = 'http://' . $iii_webcat . '/search/.b' . $bnum . '/.b' . $bnum . '/1,1,1,B/holdings~' . $bnum . '&FF=&1,0,';
-			$avail_page_raw = utf8_encode(file_get_contents($url));
+		// Order Entry Regex
+		$regex_o = '%bibOrderEntry(.*?)td(.*?)>(.*?)<%s';
+		preg_match_all($regex_o, $hold_page_raw, $match_o);
+		foreach($match_o[3] as $order) {
+			$avail_array['order'][] = trim($order);
 		}
+
+		$url = 'http://' . $iii_webcat . '/search~24/.b' . $bnum . '/.b' . $bnum . '/1,1,1,B/holdings~' . $bnum . '&FF=&1,0,';
+		$avail_page_raw = utf8_encode(file_get_contents($url));
 
 		// Holdings Regex
 		$regex_h = '%field 1 -->&nbsp;(.*?)</td>(.*?)browse">(.*?)</a>(.*?)field \% -->&nbsp;(.*?)</td>%s';
 		preg_match_all($regex_h, $avail_page_raw, $matches);
-		$avail_temp['location'] = $matches[1];
-		$avail_temp['callnum'] = $matches[3];
-		$avail_temp['status'] = $matches[5];
 
-		// Order Entry Regex
-		$regex_o = '%bibOrderEntry(.*?)td(.*?)>(.*?)<%s';
-		preg_match($regex_o, $avail_page_raw, $match_o);
-		$order_entry_msg = trim($match_o[3]);
-		$item_status_result['order'] = $order_entry_msg ? $order_entry_msg : '';
-
-		$total_avail = 0;
-		$item_status_result['locations'] = array();
-		foreach ($matches[3] as $num => $cnum) {
-			$cnum = trim($cnum);
-			$item_status = trim($matches[5][$num]);
-			$location = trim($matches[1][$num]);
-			$location_code = $locations_arr[$location];
-			if (!in_array($location_code, $item_status_result['locations'])) { $item_status_result['locations'][] = $location_code; }
-			if (in_array($item_status, $avail_token)) {
-				$avail[$cnum][$location]['avail']++;
-				$total_avail++;
-			} else if (preg_match('/DUE/i', $item_status)) {
-				$due_arr = explode(' ', trim($item_status));
-				$due_date_arr = explode('-', $due_arr[1]);
-				$due_date = mktime(0, 0, 0, $due_date_arr[0], $due_date_arr[1], (2000 + (int) $due_date_arr[2]));
-				$avail[$cnum][$location]['due'][] = $due_date;
-				sort($avail[$cnum][$location]['due']);
+		foreach ($matches[1] as $i => $location) {
+			// put the item details in the array
+			$location = trim($location);
+			$loc_code = $loc_codes_flipped[$location];
+			$call = str_replace("'", "&apos;", trim($matches[3][$i]));
+			$status = trim($matches[5][$i]);
+			$age = $default_age;
+			
+			if (in_array($status, $avail_token)) { 
+				$avail = 1;
+				$due_date = 0;
+			} else { 
+				$avail = 0;
+				if (preg_match('/DUE/i', $item_status)) {
+					$due_arr = explode(' ', trim($item_status));
+					$due_date_arr = explode('-', $due_arr[1]);
+					$due_date = mktime(0, 0, 0, $due_date_arr[0], $due_date_arr[1], (2000 + (int) $due_date_arr[2]));
+				} else {
+					$due_date = 0;
+				}
 			}
+			foreach ($this->locum_config['ils_config']['iii_custom_config']['iii_record_ages'] as $item_age => $match_crit) {
+				if (preg_match('/^\//', $match_crit)) {
+					if (preg_match($match_crit, $loc_code)) { $age = $item_age; }
+				} else {
+					if (in_array($loc_code, parent::csv_parser($match_crit))) { $age = $item_age; }
+				}
+			}
+			$avail_array['items'][] = array(
+				'location' => $location,
+				'loc_code' => $loc_code,
+				'callnum' => $call,
+				'statusmsg' => $status,
+				'due' => $duedate,
+				'avail' => $avail,
+				'age' => $age,
+			);
 		}
-		$item_status_result['total'] = $item_status_result['total'] ? $item_status_result['total'] : count($matches[3]);
-		$item_status_result['copies'] = (int) $total_avail;
-		$item_status_result['details'] = $avail;
+		
+		return $avail_array;
 
-		return $item_status_result;
 	}
 	
 	/**

@@ -2,7 +2,7 @@
 <?php
 
 /*
-Parses location codes from the "Branch code" list in the Millennium telnet client.  Get to it by navigating to M (Management) > I (Information about system) > C (Codes used) > B (Branch codes).  Since III only allows you to print the list, you'll have to copy and paste it into a text file and make sure the format matches up to like the following example (note the space before the padded number):
+Parses location codes from the "Branch code" list in the Millennium telnet client.  Get to it by navigating to M (Management) > I (Information about system) > C (Codes used) > B (Branch codes).  Since III only allows you to print the list, you'll have to copy and paste it into a text file and make sure the format matches up to like the following example:
 
  001 > a         Adult Collection
  002 > adabi     Adult Playaway Biographies
@@ -13,7 +13,7 @@ Parses location codes from the "Branch code" list in the Millennium telnet clien
 
 ... and so on.
 
-Then run this script and pass the filename as an argument.  Pipe the output into locum_iii_config.ini and put it in the config directory of the III locum connector.
+Then run this script and pass the filename as an argument.  Paste the output into locum_iii_config.ini and put it in the config directory of the III locum connector.
 
 */
 
@@ -39,6 +39,6 @@ foreach ($locations_arr as $code => $location) {
 	$config_string .= $code . "\t\t\t = " . '"' . $location . '"' . "\n";
 }
 
-$output = "[iii_location_codes]\n\n" . $config_string;
+$output = "\n\n[iii_location_codes]\n\n" . $config_string;
 
 print $output;
