@@ -24,7 +24,6 @@ class locum_iii_2007 {
 	 */
 	public function __construct() {
 		require_once('patronapi.php');
-		$this->locum_config = @array_merge($this->locum_config, @parse_ini_file('config/locum_iii_config.ini', true));
 	}
 
 	/**
@@ -244,11 +243,12 @@ class locum_iii_2007 {
 	 * @return array Returns a Locum-ready availability array
 	 */
 	public function item_status($bnum) {
+		
 		$iii_webcat = $this->locum_config['ils_config']['ils_server'];
 		$iii_webcat_port = $this->locum_config['ils_config']['ils_harvest_port'];
 		$avail_token = locum::csv_parser($this->locum_config['ils_custom_config']['iii_available_token']);
 		$default_age = $this->locum_config['ils_config']['iii_custom_config']['default_age'];
-		$loc_codes_flipped = array_flip($this->locum_iii_config['iii_location_codes']);
+		$loc_codes_flipped = array_flip($this->locum_config['iii_location_codes']);
 		$bnum = trim($bnum);
 
 		// Grab Hold Numbers
@@ -261,10 +261,14 @@ class locum_iii_2007 {
 		$avail_array['holds'] = $match_r['hold_num'] ? $match_r['hold_num'] : 0;
 
 		// Order Entry Regex
+		$avail_array['on_order'] = 0;
 		$regex_o = '%bibOrderEntry(.*?)td(.*?)>(.*?)<%s';
 		preg_match_all($regex_o, $hold_page_raw, $match_o);
 		foreach($match_o[3] as $order) {
-			$avail_array['order'][] = trim($order);
+			$order_txt = trim($order);
+			preg_match('%^(.*?)cop%s', $order_txt, $order_count);
+			$avail_array['on_order'] = $avail_array['on_order'] + (int) trim($order_count[1]);
+			$avail_array['orders'][] = $order_txt;
 		}
 
 		$url = 'http://' . $iii_webcat . '/search~24/.b' . $bnum . '/.b' . $bnum . '/1,1,1,B/holdings~' . $bnum . '&FF=&1,0,';
@@ -287,15 +291,15 @@ class locum_iii_2007 {
 				$due_date = 0;
 			} else { 
 				$avail = 0;
-				if (preg_match('/DUE/i', $item_status)) {
-					$due_arr = explode(' ', trim($item_status));
+				if (preg_match('/DUE/i', $status)) {
+					$due_arr = explode(' ', trim($status));
 					$due_date_arr = explode('-', $due_arr[1]);
 					$due_date = mktime(0, 0, 0, $due_date_arr[0], $due_date_arr[1], (2000 + (int) $due_date_arr[2]));
 				} else {
 					$due_date = 0;
 				}
 			}
-			foreach ($this->locum_config['ils_config']['iii_custom_config']['iii_record_ages'] as $item_age => $match_crit) {
+			foreach ($this->locum_config['iii_record_ages'] as $item_age => $match_crit) {
 				if (preg_match('/^\//', $match_crit)) {
 					if (preg_match($match_crit, $loc_code)) { $age = $item_age; }
 				} else {
@@ -307,7 +311,7 @@ class locum_iii_2007 {
 				'loc_code' => $loc_code,
 				'callnum' => $call,
 				'statusmsg' => $status,
-				'due' => $duedate,
+				'due' => $due_date,
 				'avail' => $avail,
 				'age' => $age,
 			);
