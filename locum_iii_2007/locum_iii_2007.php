@@ -79,15 +79,10 @@ class locum_iii_2007 {
 					$bib['mat_code'] = trim($bil_obj->FIXVALUE);
 					break;
 				case 'BCODE3':
-					$bib['bcode3'] = trim($bil_obj->FIXVALUE);
+					$bib['suppress'] = in_array(trim($bil_obj->FIXVALUE), locum::csv_parser($this->locum_config['ils_custom_config']['suppress_codes'])) ? 1 : 0;
 					break;
 
 			}
-		}
-		
-		// Handle Suppression
-		if (in_array($bib['bcode3'], parent::csv_parser($this->locum_config['ils_custom_config']['suppress_codes']))) {
-			return FALSE;
 		}
 
 		// Process MARC fields
@@ -303,7 +298,7 @@ class locum_iii_2007 {
 				if (preg_match('/^\//', $match_crit)) {
 					if (preg_match($match_crit, $loc_code)) { $age = $item_age; }
 				} else {
-					if (in_array($loc_code, parent::csv_parser($match_crit))) { $age = $item_age; }
+					if (in_array($loc_code, locum::csv_parser($match_crit))) { $age = $item_age; }
 				}
 			}
 			$avail_array['items'][] = array(
