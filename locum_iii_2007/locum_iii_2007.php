@@ -3,6 +3,13 @@
  * Locum is a software library that abstracts ILS functionality into a
  * catalog discovery layer for use with such things as bolt-on OPACs like
  * SOPAC.
+ *
+ * This connector assumes that your Millennium webpac/webpac pro is set up
+ * to display in UTF-8.  You may need to verify with III's helpdesk that
+ * it is.  Additionally, you will need to verify that your III database
+ * has been converted to unicode storage.  See:
+ * http://csdirect.iii.com/documentation/unicodestorage.shtml
+ *
  * @package Locum
  * @category Locum Connector
  * @author John Blyberg
