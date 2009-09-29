@@ -183,7 +183,7 @@ class locum_iii_2007 {
 		$bib['upc'] = '';
 		$upc = self::prepare_marc_values($bib_info_marc['024'], array('a'));
 		$bib['upc'] = $upc[0];
-		if($bib['upc'] == '') { $bib[upc] = "000000000000"; }
+		if($bib['upc'] == '') { $bib['upc'] = "000000000000"; }
 
 		// Grab the cover image URL if we're doing that
 		$bib['cover_img'] = '';
@@ -249,7 +249,7 @@ class locum_iii_2007 {
 		$iii_webcat = $this->locum_config['ils_config']['ils_server'];
 		$iii_webcat_port = $this->locum_config['ils_config']['ils_harvest_port'];
 		$avail_token = locum::csv_parser($this->locum_config['ils_custom_config']['iii_available_token']);
-		$default_age = $this->locum_config['ils_config']['iii_custom_config']['default_age'];
+		$default_age = $this->locum_config['iii_custom_config']['default_age'];
 		$loc_codes_flipped = array_flip($this->locum_config['iii_location_codes']);
 		$bnum = trim($bnum);
 

@@ -40,7 +40,7 @@ class iii_patronapi {
 		if (!$api_contents) return FALSE;
 
 		$api_array_lines = explode("\n", $api_contents);
-		while (strlen($api_data[PBARCODE]) != $this->bcode_length && !$api_data[ERRNUM]) {
+		while (strlen($api_data['PBARCODE']) != $this->bcode_length && !$api_data['ERRNUM']) {
 			foreach ($api_array_lines as $api_line) {
 				$api_line = str_replace("p=", "peq", $api_line);
 				$api_line_arr = explode("=", $api_line);

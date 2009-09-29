@@ -166,7 +166,7 @@ class iiitools {
 			$url_suffix = 'patroninfo~S3/' . $this->pnum . '/items';
 		}
 		$result = self::my_curl_exec($url_suffix);
-		return self::parse_patron_items($result[body]);
+		return self::parse_patron_items($result['body']);
 	}
 
 	/**
