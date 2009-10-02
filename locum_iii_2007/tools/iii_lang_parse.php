@@ -23,23 +23,23 @@ $codes_raw = split("[\n|\r]", $loc_list_raw);
 $config_string = '';
 
 foreach ($codes_raw as $code_raw) {
-	$loc = '';
-	$string_tmp = trim(substr($code_raw, 6));
-	$code_arr_tmp = explode(' ', $string_tmp);
-	$key = array_shift($code_arr_tmp);
-	foreach ($code_arr_tmp as $code_tmp) {
-		if (trim($code_tmp)) {
-			$loc .= trim($code_tmp) . ' ';
-		}
-	}
-	$locations_arr[$key] = trim($loc);
-	
+  $loc = '';
+  $string_tmp = trim(substr($code_raw, 6));
+  $code_arr_tmp = explode(' ', $string_tmp);
+  $key = array_shift($code_arr_tmp);
+  foreach ($code_arr_tmp as $code_tmp) {
+    if (trim($code_tmp)) {
+      $loc .= trim($code_tmp) . ' ';
+    }
+  }
+  $locations_arr[$key] = trim($loc);
+  
 }
 
 foreach ($locations_arr as $code => $location) {
-	if ($location) {
-		$config_string .= $code . "\t\t\t\t = " . '"' . $location . '"' . "\n";
-	}
+  if ($location) {
+    $config_string .= $code . "\t\t\t\t = " . '"' . $location . '"' . "\n";
+  }
 }
 
 $output = "\n\n[iii_language_codes]\n\n" . $config_string;
