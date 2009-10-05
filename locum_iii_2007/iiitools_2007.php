@@ -665,7 +665,6 @@ class iiitools {
     while (!$body) {
       $body = curl_exec($this->ch);
       if ($no_loop) {
-
         return self::parse_response($body); 
       }
       $curl_loop++;
@@ -695,7 +694,7 @@ class iiitools {
     // put the rest of the headers in an array
     $response_header_array = array();
     foreach($response_header_lines as $header_line) {
-           list($header,$value) = explode(': ', $header_line, 2);
+      list($header,$value) = explode(': ', $header_line, 2);
       $response_header_array[$header] .= $value."\n";
     }
 
