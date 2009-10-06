@@ -441,7 +441,16 @@ class locum_iii_2007 {
   public function update_holdfreezes($cardnum, $pin, $holdfreezes_to_update) {
     $iii = $this->get_tools($cardnum, $pin);
     if ($iii->catalog_login() == FALSE) { return FALSE; }
-    $iii->update_holdfreezes($holdfreezes_to_update);
+    $holds = self::patron_holds($cardnum, $pin);
+    foreach ($holds as $hold) {
+      if (isset($holdfreezes_to_update[$hold['bnum']])) {
+        $freeze[$hold['bnum']] = $holdfreezes_to_update[$hold['bnum']];
+      } else {
+        $freeze[$hold['bnum']] = $hold['is_frozen'];
+      }
+    }
+    $iii->update_holdfreezes($freeze);
+    usleep(300000);
     return TRUE;
   }
 

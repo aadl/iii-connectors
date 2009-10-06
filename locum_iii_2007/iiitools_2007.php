@@ -322,8 +322,8 @@ class iiitools {
       if ($canceldate) {
         $item[$i]['canceldate'] = $canceldate;
       }
-      $item[$i]['is_frozen'] = (stristr($rawmatch[10][$i], 'checked') !== FALSE);
-      $item[$i]['can_freeze'] = (stristr($rawmatch[10][$i], 'checkbox') !== FALSE);
+      $item[$i]['is_frozen'] = (stristr($rawmatch[10][$i], 'checked')) ? 1 : 0;
+      $item[$i]['can_freeze'] = (stristr($rawmatch[10][$i], 'checkbox')) ? 1 : 0;
     }
     return $item;
   }
@@ -415,6 +415,7 @@ class iiitools {
     $result = self::my_curl_exec($url_suffix);
     return $result; // TODO make the return info a little more useful - Handle errors, etc
   }
+  
   /**
    * Cancel a hold on a particular item or list of items.
    *
@@ -424,7 +425,7 @@ class iiitools {
   public function update_holdfreezes($holdfreezes_to_update) {
     $url_suffix = 'patroninfo~S13/' . $this->pnum . '/holds?updateholdssome=TRUE';
     foreach ($holdfreezes_to_update as $bnum => $freeze) {
-      $getvars[] = 'freezeb' . $bnum . '=' . ($freeze == '1' ? '1' : '0');
+      $getvars[] = 'freezeb' . $bnum . '=' . ((int) $freeze ? '1' : '0');
     }
     $updates = implode('&', $getvars);
     $url_suffix .= '&' . $updates;
