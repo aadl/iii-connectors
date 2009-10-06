@@ -10,6 +10,13 @@
  * has been converted to unicode storage.  See:
  * http://csdirect.iii.com/documentation/unicodestorage.shtml
  *
+ * This connector has been developed against the plain-vanilla WebPAC
+ * Example Sets and Photoshop Files that can be downloaded for Release
+ * 2007 from here:
+ * http://csdirect.iii.com/downloads/webopac_custom_files.shtml
+ * The only wwwoption change you'll need to make, will be to enable
+ * (uncheck Inactive) FREEZE_HOLDS in the "Patron Record" section.
+ *
  * @package Locum
  * @category Locum Connector
  * @author John Blyberg
@@ -42,12 +49,11 @@ class locum_iii_2007 {
    */
   public function scrape_bib($bnum, $skip_cover = FALSE) {
 
-    $iii_webcat = $this->locum_config['ils_config']['ils_server'];
-    $iii_webcat_port = $this->locum_config['ils_config']['ils_harvest_port'];
+    $iii_server_info = self::iii_server_info();
 
     $bnum = trim($bnum);
 
-    $xrecord = @simplexml_load_file('http://' . $iii_webcat . ':' . $iii_webcat_port . '/xrecord=b' . $bnum);
+    $xrecord = @simplexml_load_file($iii_server_info['nosslurl'] . '/xrecord=b' . $bnum);
 
     // If there is no record, return false (weeded or non-existent)
     if ($xrecord->NULLRECORD) {
@@ -246,15 +252,14 @@ class locum_iii_2007 {
    */
   public function item_status($bnum) {
     
-    $iii_webcat = $this->locum_config['ils_config']['ils_server'];
-    $iii_webcat_port = $this->locum_config['ils_config']['ils_harvest_port'];
+    $iii_server_info = self::iii_server_info();
     $avail_token = locum::csv_parser($this->locum_config['ils_custom_config']['iii_available_token']);
     $default_age = $this->locum_config['iii_custom_config']['default_age'];
     $loc_codes_flipped = array_flip($this->locum_config['iii_location_codes']);
     $bnum = trim($bnum);
 
     // Grab Hold Numbers
-    $url = 'http://' . $iii_webcat . '/search~24/.b' . $bnum . '/.b' . $bnum . '/1,1,1,B/marc~' . $bnum . '&FF=&1,0,';
+    $url = $iii_server_info['nosslurl'] . '/search~24/.b' . $bnum . '/.b' . $bnum . '/1,1,1,B/marc~' . $bnum . '&FF=&1,0,';
     $hold_page_raw = utf8_encode(file_get_contents($url));
 
     // Reserves Regex
@@ -273,7 +278,7 @@ class locum_iii_2007 {
       $avail_array['orders'][] = $order_txt;
     }
 
-    $url = 'http://' . $iii_webcat . '/search~24/.b' . $bnum . '/.b' . $bnum . '/1,1,1,B/holdings~' . $bnum . '&FF=&1,0,';
+    $url = $iii_server_info['nosslurl'] . '/search~24/.b' . $bnum . '/.b' . $bnum . '/1,1,1,B/holdings~' . $bnum . '&FF=&1,0,';
     $avail_page_raw = utf8_encode(file_get_contents($url));
 
     // Holdings Regex
@@ -639,12 +644,21 @@ class locum_iii_2007 {
   private function get_tools($cardnum, $pin) {
     require_once('iiitools_2007.php');
     $iii = new iiitools;
-    $iii->set_iiiserver($this->locum_config['ils_config']['ils_server']);
+    $iii->set_iiiserver(self::iii_server_info());
     $iii->set_cardnum($cardnum);
     $iii->set_pin($pin);
     return $iii;
   }
 
+  private function iii_server_info() {
+    $server_select = strtolower(trim($this->locum_config['ils_config']['server_select']));
+    $iii_server_info['server'] = $this->locum_config['ils_config']['ils_server'];
+    $iii_server_info['nosslport'] = $this->locum_config['ils_config']['ils_' . $server_select . '_port'];
+    $iii_server_info['nosslurl'] = 'http://' . $iii_server_info['server'] . ':' . $iii_server_info['nosslport'];
+    $iii_server_info['sslport'] = $this->locum_config['ils_config']['ils_' . $server_select . '_port_ssl'];
+    $iii_server_info['sslurl'] = 'https://' . $iii_server_info['server'] . ':' . $iii_server_info['sslport'];
+    return $iii_server_info;
+  }
 
 
 

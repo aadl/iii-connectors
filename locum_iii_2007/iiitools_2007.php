@@ -18,7 +18,7 @@
  */
 class iiitools {
 
-  public $iiiserver;
+  public $iii_server_info;
   public $cardnum;
   public $pnum;
   public $cookie;
@@ -80,11 +80,11 @@ class iiitools {
   /**
    * Sets the III server for the active instansiation
    *
-   * @param string $iiiserver III server address, IP or FQDN
+   * @param array $iii_server_info
    */
-  public function set_iiiserver($iiiserver) {
-    $this->iiiserver = $iiiserver;
-    $this->papi->iiiserver = $iiiserver;
+  public function set_iiiserver($iii_server_info) {
+    $this->iii_server_info = $iii_server_info;
+    $this->papi->iiiserver = $iii_server_info['server'];
   }
   
   /**
@@ -648,11 +648,12 @@ class iiitools {
    * @param int $curl_timeout Timeout, in seconds, before cURL gives up curl_exec.  (optional).  Default: 6
    * @return array Array of parsed components from the cURL result as provided by parse_response()
    */
-  public function my_curl_exec($url_suffix, $postvars = NULL, $no_loop = FALSE, $curl_timeout = 6, $login_query = FALSE) {
+  public function my_curl_exec($url_suffix, $postvars = NULL, $no_loop = FALSE, $curl_timeout = 6, $login_query = FALSE, $ssl = TRUE) {
 
-    $agent = "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.4; en-US; rv:1.9.0.7-locum) Gecko/2009021906 Firefox/3.0.7"; // You got a better idea?
+    $iii_url = $ssl ? $this->iii_server_info['sslurl'] : $this->iii_server_info['nosslurl'];
+    $agent = "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.4; en-US; rv:1.9.0.7-locum) Gecko/2009021906 Firefox/3.5.3";
     if ($url_suffix[0] == '/') { $url_suffix = substr($url_suffix, 1); }
-    $curl_url = 'https://' . $this->iiiserver . '/' . $url_suffix;
+    $curl_url = $iii_url . '/' . $url_suffix;
 
     // If we have POST variables to send, initializr them here
     if ($postvars) {
