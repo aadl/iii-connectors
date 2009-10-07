@@ -420,42 +420,21 @@ class locum_iii_2007 {
     if ($iii->catalog_login() == FALSE) { return FALSE; }
     return $iii->renew_material($items);
   }
-  
+
   /**
-   * Cancels holds
+   * Updates holds/reserves
    *
    * @param string $cardnum Patron barcode/card number
    * @param string $pin Patron pin/password
-   * @param array Array of varname => item/bib numbers to be cancelled, or NULL for everything.
+   * @param array $cancelholds Array of varname => item/bib numbers to be cancelled, or NULL for everything.
+   * @param array $holdfreezes_to_update Array of updated holds freezes.
+   * @param array $pickup_locations Array of pickup location changes.
    * @return boolean TRUE or FALSE if it cannot cancel for some reason
    */
-  public function cancel_holds($cardnum, $pin = NULL, $items = NULL) {
+  public function update_holds($cardnum, $pin = NULL, $cancelholds = array(), $holdfreezes_to_update = array(), $pickup_locations = array()) {
     $iii = $this->get_tools($cardnum, $pin);
     if ($iii->catalog_login() == FALSE) { return FALSE; }
-    $iii->cancel_holds($items);
-    return TRUE;
-  }
-  /**
-   * Places or removes freezes on holds
-   *
-   * @param string $cardnum Patron barcode/card number
-   * @param string $pin Patron pin/password
-   * @param array $holdfreezes_to_update Array of bnum => new status.
-   * @return boolean TRUE or FALSE if it cannot cancel for some reason
-   */
-  public function update_holdfreezes($cardnum, $pin, $holdfreezes_to_update) {
-    $iii = $this->get_tools($cardnum, $pin);
-    if ($iii->catalog_login() == FALSE) { return FALSE; }
-    $holds = self::patron_holds($cardnum, $pin);
-    foreach ($holds as $hold) {
-      if (isset($holdfreezes_to_update[$hold['bnum']])) {
-        $freeze[$hold['bnum']] = $holdfreezes_to_update[$hold['bnum']];
-      } else {
-        $freeze[$hold['bnum']] = $hold['is_frozen'];
-      }
-    }
-    $iii->update_holdfreezes($freeze);
-    usleep(300000);
+    $iii->update_holds($cardnum, $pin, $cancelholds, $holdfreezes_to_update, $pickup_locations);
     return TRUE;
   }
 

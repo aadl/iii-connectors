@@ -251,36 +251,30 @@ class iiitools {
    * @return array An array of items checked out.
    */
   public function parse_patron_items($itemlist_raw) {
-
-    $regex = '%<input type="checkbox" name="(.+?)" value="(.+?)" />(.+?)patFuncTitle">(.+?)</td>(.+?)patFuncBarcode"> (.+?) </td>(.+?)patFuncStatus"> DUE (.+?) (<span  class="patFuncRenewCount">(.+?)</span>)?(.+?)</td>(.+?)patFuncCallNo"> (.+?)</td>%s';
+    
+    $regex = '%patFuncEntry(.+?)name="(.+?)" value="i(.+?)"(.+?)patFuncTitle"><a href="/patroninfo~S3/(.+?)/item&(.+?)">(.+?)</a>(.+?)DUE(.+?)<(.+?)CallNo">(.+?)</td>%s';
     $count = preg_match_all($regex, $itemlist_raw, $rawmatch);
 
   
     for ($i=0; $i < $count; $i++) {
-      $item[$i]['varname'] = trim($rawmatch[1][$i]);
+      $item[$i]['varname'] = trim($rawmatch[2][$i]);
     
-      $item[$i]['inum'] = substr(trim($rawmatch[2][$i]), 1);
-      $item[$i]['bnum'] = self::inum_to_bnum($item[$i]['inum']);
+      $item[$i]['inum'] = trim($rawmatch[3][$i]);
+      $item[$i]['bnum'] = trim($rawmatch[6][$i]);
+      $item[$i]['title'] = trim($rawmatch[7][$i]);
 
-      $title_mess = trim($rawmatch[4][$i]);
-      if (preg_match('%href(.+?)</a>%s', $title_mess, $sub_title_mess)) {
-        preg_match('%">(.+?)</a>%s', $sub_title_mess[0], $sub_title_mess_arr);
-        $item[$i]['title'] = trim($sub_title_mess_arr[1]);
-        $item[$i]['ill'] = 0;
-      } else {
-        $item[$i]['title'] = trim($title_mess);
-        $item[$i]['ill'] = 1;
-      }
+      // Todo - Talk with AADL about doing this differently.  For now, it's hard-coded to no ILL.
+      $item[$i]['ill'] = 0;
 
-      if (trim($rawmatch[11][$i])) {
-        preg_match('%Renewed (.+?) time%s', $rawmatch[11][$i], $num_renews_raw);
+      if (trim($rawmatch[10][$i])) {
+        preg_match('%Renewed (.+?) time%s', $rawmatch[10][$i], $num_renews_raw);
         $item[$i]['numrenews'] = trim($num_renews_raw[1]) ? trim($num_renews_raw[1]) : 0;
       } else {
         $item[$i]['numrenews'] = 0;
       }
 
-      $item[$i]['duedate'] = self::date_to_timestamp(trim($rawmatch[8][$i]));
-      $item[$i]['callnum'] = trim($rawmatch[13][$i]);
+      $item[$i]['duedate'] = self::date_to_timestamp(trim($rawmatch[9][$i]));
+      $item[$i]['callnum'] = trim($rawmatch[11][$i]);
     }
     return $item;
 
@@ -295,30 +289,33 @@ class iiitools {
 
     $url_suffix = 'patroninfo/' . $this->pnum . '/holds';
     $result = self::my_curl_exec($url_suffix);
+    
+    /*
+    patFuncMark(.+?)name="(.+?)"(.+?)/patroninfo~S3/(.+?)/item&(.+?)">(.+?)</a>(.+?)patFuncStatus">(.+?)</td>(.+?)patFuncPickup">(.+?)</td>(.+?)patFuncCancel">(.+?)</td>(.+?)patFuncFreeze(.+?)name="(.+?)"(.+?)/></td>
+    */
 
-    $regex = '/<input type="checkbox" name="(.+?)" \/><\/td>(.+?)patFuncTitle">(.+?)<\/td>(.+?)patFuncStatus">(.+?)<\/td>(.+?)patFuncPickup">(.+?)<\/td>(.+?)patFuncCancel">(.+?)<\/td>.*?patFuncFreeze"(.*?)<\/td>/is';
+    $regex = '%patFuncMark(.+?)name="(.+?)"(.+?)/patroninfo~S3/(.+?)/item&(.+?)">(.+?)</a>(.+?)patFuncStatus">(.+?)</td>(.+?)patFuncPickup">(.+?)</td>(.+?)patFuncCancel">(.+?)</td>(.+?)patFuncFreeze(.+?)</td>%s';
   
     $count = preg_match_all($regex, $result['body'], $rawmatch);
     for ($i=0; $i < $count; $i++) {
-      $item[$i]['varname'] = trim($rawmatch[1][$i]);
+      $item[$i]['varname'] = trim($rawmatch[2][$i]);
+      $item[$i]['bnum'] = trim($rawmatch[5][$i]);
+      $item[$i]['title'] = trim($rawmatch[6][$i]);
 
-      if (!preg_match('%@%s', $item[$i]['varname'])) {
-        preg_match('%item&(.+?)">(.+?)</a>%s', trim($rawmatch[3][$i]), $sub_title_mess_arr);
-        $item[$i]['bnum'] = trim($sub_title_mess_arr[1]);
-        $item[$i]['title'] = trim($sub_title_mess_arr[2]);
-        $item[$i]['ill'] = 0;
-      } else {
-        // ILL request
-        $item[$i]['title'] = trim($rawmatch[3][$i]);
+      // Check with AADL to see if this work properly
+      if (preg_match('%@%s', $item[$i]['varname'])) {
         $item[$i]['ill'] = 1;
+      } else {
+        $item[$i]['ill'] = 0;
       }
-      $status = trim($rawmatch[5][$i]);
+      
+      $status = trim($rawmatch[8][$i]);
       if ((!preg_match('/of/i', $status)) && (!preg_match('/ready/i', $status)) && (!preg_match('/RECEIVED/i', $status))) { 
-        $status = "Waiting for your copy";
+        $status = "In Transit";
       }
       $item[$i]['status'] = $status;
       
-      $pickup_select = trim($rawmatch[7][$i]);
+      $pickup_select = trim($rawmatch[10][$i]);
       preg_match('/select name=(.+?)>/is', $pickup_select, $pickup_var_match);
       $select_count = preg_match_all('/option value="(.+?)"(.+?)>(.+?)<\/option>/is', $pickup_select, $pickup_select_var_match);
       $item[$i]['pickuploc']['selectid'] = trim($pickup_var_match[1]);
@@ -330,12 +327,20 @@ class iiitools {
         }
       }
 
-      $canceldate = trim(str_replace('&nbsp;', '', $rawmatch[9][$i]));
+      $canceldate = trim(str_replace('&nbsp;', '', $rawmatch[12][$i]));
       if ($canceldate) {
         $item[$i]['canceldate'] = $canceldate;
       }
-      $item[$i]['is_frozen'] = (stristr($rawmatch[10][$i], 'checked')) ? 1 : 0;
-      $item[$i]['can_freeze'] = (stristr($rawmatch[10][$i], 'checkbox')) ? 1 : 0;
+      
+      if (preg_match('%type="(.+?)" name="(.+?)"(.+?)/>%s', $rawmatch[14][$i], $freezematch)) {
+        $item[$i]['is_frozen'] = (trim($freezematch[3]) == 'checked') ? 1 : 0;
+        $item[$i]['can_freeze'] = (trim($freezematch[1]) == 'checkbox') ? 1 : 0;
+        $item[$i]['freezevar'] = trim($freezematch[2]);
+      } else {
+        $item[$i]['is_frozen'] = 0;
+        $item[$i]['can_freeze'] = 0;
+        $item[$i]['freezevar'] = NULL;
+      }
     }
     return $item;
   }
@@ -408,6 +413,61 @@ class iiitools {
     }
 
     return $result;
+  }
+  
+  /**
+   * Cancel a hold on a particular item or list of items.
+   *
+   * @param array $holdvars Array of hold variables to cancel.  Holdvars come from get_patron_holds().
+   * @return array my_curl_exec result array
+   */
+  public function update_holds($cancelholds = array(), $holdfreezes_to_update = array(), $pickup_locations = array()) {
+    $url_suffix = 'patroninfo/' . $this->pnum . '/holds?updateholdssome=TRUE';
+
+    $holds = self::get_patron_holds();
+    
+    $freeze_arr = array();
+    $pickup_arr = array();
+    foreach ($holds as $hold) {
+      if (isset($holdfreezes_to_update[$hold['bnum']])) {
+        $freeze_arr[$hold['bnum']] = $holdfreezes_to_update[$hold['bnum']];
+      } else {
+        $freeze_arr[$hold['bnum']] = $hold['is_frozen'];
+      }
+      
+      if (isset($pickup_locations[$hold['bnum']])) {
+        $pickup_arr[$hold['bnum']] = array('selectid' => $pickup_locations[$hold['bnum']]['selectid'], 'selected' => $pickup_locations[$hold['bnum']]['selected']);
+      } else if (isset($hold['pickuploc']['selectid']) && isset($hold['pickuploc']['selected'])) {
+        $pickup_arr[$hold['bnum']] = array('selectid' => $hold['pickuploc']['selectid'], 'selected' => $hold['pickuploc']['selected']);
+      }
+    }
+    
+    // Queue up cancellations
+    if (count($cancelholds)) {
+      foreach ($cancelholds as $var1 => $var2) {
+        $getvars[] = $var2 . '=1';
+      }
+      $cancelations = implode('&', $getvars);
+      $url_suffix .= '&' . $cancelations;
+    }
+    
+    // Queue up hold freezes
+    foreach ($freeze_arr as $bnum => $freeze) {
+      $getvars[] = 'freezeb' . $bnum . '=' . ((int) $freeze ? '1' : '0');
+    }
+    
+    // Queue up pickup location changes
+    if (count($pickup_arr)) {
+      foreach ($pickup_arr as $bnum => $pickup_sel_arr) {
+        $getvars[] = $pickup_sel_arr['selectid'] . '=' . $pickup_sel_arr['selected'];
+      }
+    }
+    
+    $url_suffix .= '&' . implode('&', $getvars);
+    usleep(300000); // To make sure the record has been freed.
+    $result = self::my_curl_exec($url_suffix);
+    usleep(300000); // To make sure the changes have taken.
+    return $result; // TODO make the return info a little more useful - Handle errors, etc
   }
 
   /**
@@ -614,16 +674,6 @@ class iiitools {
       $result_arr['reason'] = trim($err_match[1]);
     }
     return $result_arr;
-  }
-
-  /**
-   * Resolves the bib record number from an item record number
-   */
-  public function inum_to_bnum($inum) {
-    $url_suffix = 'record=i' . $inum;
-    $record_result = self::my_curl_exec($url_suffix);
-    preg_match('%">B(.*?)<\/%s', $record_result['body'], $bnum_raw_match);
-    return substr(trim($bnum_raw_match[1]), 0, -1);
   }
 
   /**
