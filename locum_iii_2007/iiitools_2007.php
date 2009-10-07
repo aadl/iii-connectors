@@ -317,7 +317,19 @@ class iiitools {
         $status = "Waiting for your copy";
       }
       $item[$i]['status'] = $status;
-      $item[$i]['pickuploc'] = trim($rawmatch[7][$i]);
+      
+      $pickup_select = trim($rawmatch[7][$i]);
+      preg_match('/select name=(.+?)>/is', $pickup_select, $pickup_var_match);
+      $select_count = preg_match_all('/option value="(.+?)"(.+?)>(.+?)<\/option>/is', $pickup_select, $pickup_select_var_match);
+      $item[$i]['pickuploc']['selectid'] = trim($pickup_var_match[1]);
+      $item[$i]['pickuploc']['options'] = array();
+      for ($j=0; $j < $select_count; $j++) {
+        $item[$i]['pickuploc']['options'][trim($pickup_select_var_match[1][$j])] = trim($pickup_select_var_match[3][$j]);
+        if (trim($pickup_select_var_match[2][$j])) {
+          $item[$i]['pickuploc']['selected'] = trim($pickup_select_var_match[1][$j]);
+        }
+      }
+
       $canceldate = trim(str_replace('&nbsp;', '', $rawmatch[9][$i]));
       if ($canceldate) {
         $item[$i]['canceldate'] = $canceldate;
@@ -377,7 +389,7 @@ class iiitools {
       }
     }
     // handle if user needs to select a location to pickup item
-    $result['choose_location'] = null;
+    $result['choose_location'] = NULL;
     if (preg_match('/select name=loc(.*?)\<\/form\>/is', $result['body'], $location_form)) {
       //get options
       preg_match_all('/\<option (.*?)\<\/option/is', $location_form[1], $found_options);
