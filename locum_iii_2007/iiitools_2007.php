@@ -440,15 +440,15 @@ class iiitools {
       } else if (isset($hold['pickuploc']['selectid']) && isset($hold['pickuploc']['selected'])) {
         $pickup_arr[$hold['bnum']] = array('selectid' => $hold['pickuploc']['selectid'], 'selected' => $hold['pickuploc']['selected']);
       }
+      
+      if (isset($cancelholds[$hold['bnum']])) {
+        $cancel_arr[$hold['varname']] = trim($cancelholds[$hold['bnum']]);
+      }
     }
     
-    // Queue up cancellations
-    if (count($cancelholds)) {
-      foreach ($cancelholds as $var1 => $var2) {
-        $getvars[] = $var2 . '=1';
-      }
-      $cancelations = implode('&', $getvars);
-      $url_suffix .= '&' . $cancelations;
+    // Queue up cancelations
+    foreach ($cancel_arr as $cancelvar => $cancelval) {
+      if ($cancelval) { $getvars[] = $cancelvar . '=1'; }
     }
     
     // Queue up hold freezes
