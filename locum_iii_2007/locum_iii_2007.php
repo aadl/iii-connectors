@@ -336,7 +336,8 @@ class locum_iii_2007 {
    */
   public function patron_info($pid) {
     $papi = new iii_patronapi;
-    $papi->iiiserver = $this->locum_config['ils_config']['ils_server'];
+    $iii_server_info = self::iii_server_info();
+    $papi->iiiserver = $iii_server_info['server'];
     $papi_data = $papi->get_patronapi_data($pid);
 
     if (!$papi_data) { return FALSE; }
@@ -434,7 +435,7 @@ class locum_iii_2007 {
   public function update_holds($cardnum, $pin = NULL, $cancelholds = array(), $holdfreezes_to_update = array(), $pickup_locations = array()) {
     $iii = $this->get_tools($cardnum, $pin);
     if ($iii->catalog_login() == FALSE) { return FALSE; }
-    $iii->update_holds($cardnum, $pin, $cancelholds, $holdfreezes_to_update, $pickup_locations);
+    $iii->update_holds($cancelholds, $holdfreezes_to_update, $pickup_locations);
     return TRUE;
   }
 

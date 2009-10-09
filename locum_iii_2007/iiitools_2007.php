@@ -414,20 +414,22 @@ class iiitools {
 
     return $result;
   }
-  
+
   /**
    * Cancel a hold on a particular item or list of items.
    *
    * @param array $holdvars Array of hold variables to cancel.  Holdvars come from get_patron_holds().
    * @return array my_curl_exec result array
    */
-  public function update_holds($cancelholds = array(), $holdfreezes_to_update = array(), $pickup_locations = array()) {
+  public function update_holds($cancelholds = array(), $holdfreezes_to_update, $pickup_locations = array()) {
     $url_suffix = 'patroninfo/' . $this->pnum . '/holds?updateholdssome=TRUE';
 
     $holds = self::get_patron_holds();
     
     $freeze_arr = array();
     $pickup_arr = array();
+    $cancel_arr = array();
+
     foreach ($holds as $hold) {
       if (isset($holdfreezes_to_update[$hold['bnum']])) {
         $freeze_arr[$hold['bnum']] = $holdfreezes_to_update[$hold['bnum']];
@@ -453,13 +455,17 @@ class iiitools {
     
     // Queue up hold freezes
     foreach ($freeze_arr as $bnum => $freeze) {
-      $getvars[] = 'freezeb' . $bnum . '=' . ((int) $freeze ? '1' : '0');
+      if (!isset($cancelholds[$bnum])) {
+        $getvars[] = 'freezeb' . $bnum . '=' . ((int) $freeze ? '1' : '0');
+      }
     }
     
     // Queue up pickup location changes
     if (count($pickup_arr)) {
       foreach ($pickup_arr as $bnum => $pickup_sel_arr) {
-        $getvars[] = $pickup_sel_arr['selectid'] . '=' . $pickup_sel_arr['selected'];
+        if (!isset($cancelholds[$bnum])) {
+          $getvars[] = $pickup_sel_arr['selectid'] . '=' . $pickup_sel_arr['selected'];
+        }
       }
     }
     
@@ -685,6 +691,7 @@ class iiitools {
    */
   public function date_to_timestamp($date_orig, $default_century = NULL) {
     $date_arr = explode('-', trim($date_orig));
+    if (count($date_arr) != 3) { return $date_orig; }
     $month = (int) $date_arr[0];
     $day = (int) $date_arr[1];
     if (strlen(trim($date_arr[2])) == 2) {
@@ -697,6 +704,7 @@ class iiitools {
     } else {
       $year = trim($date_arr[2]);
     }
+    if (is_numeric($date_arr[0]) && is_numeric($date_arr[0]) && is_numeric($year))
     $time = mktime(0, 0, 0, (int) $date_arr[0], (int) $date_arr[1], $year);
     return $time;
   }
