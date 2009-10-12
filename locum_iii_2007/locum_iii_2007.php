@@ -382,6 +382,7 @@ class locum_iii_2007 {
     $result = $iii ? $iii->get_patron_history_items() : FALSE;
     return $result;
   }
+  
   /**
    * Opts patron in or out of checkout history
    *
@@ -530,8 +531,7 @@ class locum_iii_2007 {
           } else {
             if ($i[$subkey]) { $pad[$subkey] = $delimiter; }
             
-            // This is a workaround until I can figure out wtf III is doing with encoding.  For now
-            // there will be no extended characters:
+            // Process unicode for diacritics
             $sv_tmp = trim($subvalue);
             $matches = array();
             preg_match_all('/\{u[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]\}/', $sv_tmp, $matches);
