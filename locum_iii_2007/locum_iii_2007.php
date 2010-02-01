@@ -201,6 +201,11 @@ class locum_iii_2007 {
     $bib['lccn'] = '';
     $lccn = self::prepare_marc_values($bib_info_marc['010'], array('a'));
     $bib['lccn'] = $lccn[0];
+    
+    // Download Link (if it's a downloadable)
+    $bib['download_link'] = '';
+    $dl_link = self::prepare_marc_values($bib_info_marc['856'], array('u'));
+    $bib['download_link'] = $dl_link[0];
 
     // Description
     $bib['descr'] = '';
