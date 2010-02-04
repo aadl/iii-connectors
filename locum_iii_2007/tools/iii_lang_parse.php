@@ -14,7 +14,7 @@ Parses location codes from the "Language code" list in the Millennium telnet cli
 
 ... and so on.
 
-Then run this script and pass the filename as an argument.  Paste the output into locum_iii_config.ini and put it in the config directory of the III locum connector.
+Then run this script and pass the filename as an argument.  Paste the output into your locum.ini file.
 
 */
 
@@ -42,6 +42,6 @@ foreach ($locations_arr as $code => $location) {
   }
 }
 
-$output = "\n\n[iii_language_codes]\n\n" . $config_string;
+$output = "\n\n[languages]\n\n" . $config_string;
 
 print $output;
