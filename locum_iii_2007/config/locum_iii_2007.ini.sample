@@ -43,6 +43,17 @@ adult			= "/^[afms]/"
 teen			= "/^[ty]/"
 child		= "/^[kjp]/"
 
+; This is where you assign item location codes to branches.  You will pair the
+; branch codes you designated in the [branches] section of locum.ini with item
+; location code matches.
+; Essentially, you are going to specify a branch code and provide either a regular
+; expression match (enclosed in slashes - //) or a comma-separated list of all the
+; ITEM LEVEL location codes associated with that branch.  A regex will be less
+; tedious, but your location codes may not be consistent enough to do so.
+; branch_code             = "/[regex]/" or "code1,code2,code3,..."
+[branch_assignments]
+main                      = "/(^ma|^dt)/"
+
 ; This needs to be the exact output from iii_loc_parse.php
 [iii_location_codes]
 a				 = "Adult Collection"
