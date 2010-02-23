@@ -4,18 +4,18 @@
 ; your environment needs them.
 
 [connector_info]
-description		= "Locum connector for III's Millennium 2007"
+description                 = "Locum connector for III's Millennium 2007"
 
 ; Locum uses this section to determine which server and which port to use
 ; server_select can either be "live" or "staging", depending on what set of
 ; screens and wwwoptions you're using with locum.
 [ils_config]
-ils_server                	= "pince.darienlibrary.org"
-server_select				= "staging"
-ils_live_port				= "80"
-ils_live_port_ssl			= "443"
-ils_staging_port          	= "2082"
-ils_staging_port_ssl		= "446"
+ils_server                  = "pince.darienlibrary.org"
+server_select               = "staging"
+ils_live_port               = "80"
+ils_live_port_ssl           = "443"
+ils_staging_port            = "2082"
+ils_staging_port_ssl        = "446"
 
 ; This is where developers define what is supported by their connector and what
 ; is not.  Locum will use this to determine which features to enable or disable.
@@ -28,9 +28,10 @@ ils_staging_port_ssl		= "446"
 
 ; General configuration parameters used by the connector
 [iii_custom_config]
-iii_available_token			= "ON SHELF, Recent Return"
-suppress_codes				= "d,n,v,w,x"
-default_age					= "all"
+iii_available_token         = "ON SHELF, Recent Return"
+suppress_codes              = "d,n,v,w,x"
+default_age                 = "all"
+default_branch              = "dl"
 
 ; Manages config options to allow the connector to determine age for the
 ; record.  Age location definitions can either be comma-separated values, or
@@ -39,9 +40,9 @@ default_age					= "all"
 ; The variable names here must match the names in the [ages] group of your
 ; locum.ini file.
 [iii_record_ages]
-adult			= "/^[afms]/"
-teen			= "/^[ty]/"
-child		= "/^[kjp]/"
+adult                       = "/^[afms]/"
+teen                        = "/^[ty]/"
+child                       = "/^[kjp]/"
 
 ; This is where you assign item location codes to branches.  You will pair the
 ; branch codes you designated in the [branches] section of locum.ini with item
@@ -50,13 +51,15 @@ child		= "/^[kjp]/"
 ; expression match (enclosed in slashes - //) or a comma-separated list of all the
 ; ITEM LEVEL location codes associated with that branch.  A regex will be less
 ; tedious, but your location codes may not be consistent enough to do so.
-; branch_code             = "/[regex]/" or "code1,code2,code3,..."
+; branchcode = "/[regex]/" or "code1,code2,code3,..."
 [branch_assignments]
-main                      = "/(^ma|^dt)/"
+dl                          = "/^((?!\b(hs|nc)\b).)*$/"
+hs                          = "hs"
+nc                          = "nc"
 
 ; This needs to be the exact output from iii_loc_parse.php
 [iii_location_codes]
-a				 = "Adult Collection"
+a			  	 = "Adult Collection"
 adabi			 = "Adult Playaway Biographies"
 adadm			 = "Adult Playaway Detective Mysteries"
 adaf			 = "Adult Playaway Fiction"
@@ -158,7 +161,7 @@ f1fgr			 = "First Floor Fiction"
 f1pbr			 = "First Floor Paperbacks"
 glanr			 = "glanr"
 hs				 = "Darien Historical Society"
-j				 = "Children's Collection"
+j				   = "Children's Collection"
 jsbpc			 = "Children's Picture Books"
 jsr				 = "Children's CD-ROM"
 jwbpc			 = "Children's New Picture Books"
@@ -213,7 +216,7 @@ magar			 = "magar"
 mapca			 = "Map Case"
 mezza			 = "mezza"
 mp3				 = "mp3"
-n				 = "New Books"
+n				   = "New Books"
 na				 = "Darien Nature Center"
 order			 = "Library"
 p1err			 = "First 5 Years - Learn to Read"
@@ -230,7 +233,7 @@ p1psr			 = "First 5 Years - Stories"
 p1ptr			 = "First 5 Years - Transportation"
 pam				 = "pam"
 paper			 = "paper"
-r				 = "Reference Collection"
+r				   = "Reference Collection"
 rack			 = "rack"
 refer			 = "refer"
 refof			 = "refof"
@@ -257,7 +260,7 @@ s2ttn			 = "2nd Floor Places Reference"
 s2ttr			 = "2nd Floor Places"
 s2wln			 = "2nd Floor Work Reference"
 s2wlr			 = "2nd Floor Work"
-t				 = "Technology Center"
+t				   = "Technology Center"
 tax				 = "tax"
 techs			 = "techs"
 tlbtr			 = "Teen Body and Soul"
@@ -287,7 +290,7 @@ tlztr			 = "Teen Magazines"
 txcdr			 = "txcdr"
 video			 = "video"
 vstor			 = "vstor"
-y				 = "Young Adult Collection"
+y				   = "Young Adult Collection"
 ydbsr			 = "Teen Summer Reading"
 ysamp			 = "Teen's Playaway"
 ysas			 = "ysas"

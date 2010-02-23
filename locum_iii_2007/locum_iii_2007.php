@@ -260,6 +260,7 @@ class locum_iii_2007 {
     $iii_server_info = self::iii_server_info();
     $avail_token = locum::csv_parser($this->locum_config['ils_custom_config']['iii_available_token']);
     $default_age = $this->locum_config['iii_custom_config']['default_age'];
+    $default_branch = $this->locum_config['iii_custom_config']['default_branch'];
     $loc_codes_flipped = array_flip($this->locum_config['iii_location_codes']);
     $bnum = trim($bnum);
 
@@ -297,6 +298,7 @@ class locum_iii_2007 {
       $call = str_replace("'", "&apos;", trim($matches[3][$i]));
       $status = trim($matches[5][$i]);
       $age = $default_age;
+      $branch = $default_branch;
       
       if (in_array($status, $avail_token)) { 
         $avail = 1;
@@ -311,13 +313,29 @@ class locum_iii_2007 {
           $due_date = 0;
         }
       }
-      foreach ($this->locum_config['iii_record_ages'] as $item_age => $match_crit) {
-        if (preg_match('/^\//', $match_crit)) {
-          if (preg_match($match_crit, $loc_code)) { $age = $item_age; }
-        } else {
-          if (in_array($loc_code, locum::csv_parser($match_crit))) { $age = $item_age; }
+      
+      // Determine age from location
+      if (count($this->locum_config['iii_record_ages'])) {
+        foreach ($this->locum_config['iii_record_ages'] as $item_age => $match_crit) {
+          if (preg_match('/^\//', $match_crit)) {
+            if (preg_match($match_crit, $loc_code)) { $age = $item_age; }
+          } else {
+            if (in_array($loc_code, locum::csv_parser($match_crit))) { $age = $item_age; }
+          }
         }
       }
+      
+      // Determine branch from location
+      if (count($this->locum_config['branch_assignments'])) {
+        foreach ($this->locum_config['branch_assignments'] as $branch_code => $match_crit) {
+          if (preg_match('/^\//', $match_crit)) {
+            if (preg_match($match_crit, $loc_code)) { $branch = $branch_code; }
+          } else {
+            if (in_array($loc_code, locum::csv_parser($match_crit))) { $branch = $branch_code; }
+          }
+        }
+      }
+      
       $avail_array['items'][] = array(
         'location' => $location,
         'loc_code' => $loc_code,
@@ -326,6 +344,7 @@ class locum_iii_2007 {
         'due' => $due_date,
         'avail' => $avail,
         'age' => $age,
+        'branch' => $branch,
       );
     }
     
