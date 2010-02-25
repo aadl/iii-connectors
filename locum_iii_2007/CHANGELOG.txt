@@ -1,4 +1,52 @@
 ------------------------------------------------------------------------
+r120 | jblyberg | 2010-02-23 18:09:37 -0500 (Tue, 23 Feb 2010) | 2 lines
+Changed paths:
+   M /iii/trunk/locum_iii_2007/config/locum_iii_2007.ini.sample
+   M /iii/trunk/locum_iii_2007/locum_iii_2007.php
+
+Added code to return branch information
+
+------------------------------------------------------------------------
+r119 | jblyberg | 2010-02-12 17:18:58 -0500 (Fri, 12 Feb 2010) | 2 lines
+Changed paths:
+   M /iii/trunk/locum_iii_2007/config/locum_iii_2007.ini.sample
+
+Added configuration parameter for branch assignment.
+
+------------------------------------------------------------------------
+r118 | jblyberg | 2010-02-05 17:37:30 -0500 (Fri, 05 Feb 2010) | 2 lines
+Changed paths:
+   D /iii/trunk/locum_iii_2007/config/locum_iii_2007.ini
+   A /iii/trunk/locum_iii_2007/config/locum_iii_2007.ini.sample (from /iii/trunk/locum_iii_2007/config/locum_iii_2007.ini:117)
+
+Renamed sample ini file so as to not overwrite existing config files.
+
+------------------------------------------------------------------------
+r117 | jblyberg | 2010-02-04 18:14:07 -0500 (Thu, 04 Feb 2010) | 3 lines
+Changed paths:
+   M /iii/trunk/locum_iii_2007/config/locum_iii_2007.ini
+   M /iii/trunk/locum_iii_2007/tools/iii_lang_parse.php
+
+Updated language parse script with updated comments and correct ini section header.
+Moved language resolution out of the connector ini.
+
+------------------------------------------------------------------------
+r116 | jblyberg | 2010-02-01 17:19:42 -0500 (Mon, 01 Feb 2010) | 2 lines
+Changed paths:
+   M /iii/trunk/locum_iii_2007/locum_iii_2007.php
+
+Harvester now returns download_link information.
+
+------------------------------------------------------------------------
+r115 | jblyberg | 2009-12-28 12:03:12 -0500 (Mon, 28 Dec 2009) | 3 lines
+Changed paths:
+   M /iii/trunk/locum_iii_2007/CHANGELOG.txt
+   A /iii/trunk/locum_iii_2007/misc/wwwoptions
+
+Added stock wwwoptions file to use as a "vanilla install"
+Updated Changelog
+
+------------------------------------------------------------------------
 r113 | jblyberg | 2009-10-12 10:23:37 -0400 (Mon, 12 Oct 2009) | 3 lines
 Changed paths:
    M /iii/trunk/locum_iii_2007/locum_iii_2007.php
