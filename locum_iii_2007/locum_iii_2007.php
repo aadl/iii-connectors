@@ -402,9 +402,17 @@ class locum_iii_2007 {
    * @return boolean|array Array of patron checkouts or FALSE if login fails
    */
   public function patron_checkout_history($cardnum, $pin = NULL) {
-    $iii = $this->get_tools($cardnum, $pin);
-    $result = $iii ? $iii->get_patron_history_items() : FALSE;
-    return $result;
+    $iii = $this->get_tools($cardnum, $pin, $action);
+    if ($iii->catalog_login() == FALSE) { return FALSE; }
+    $result = $iii ? $iii->get_patron_history_items($action) : FALSE;
+    $i = 0;
+    foreach ($result as $item) {
+      $hist_result[$i]['varname'] = $item['varname'];
+      $hist_result[$i]['bnum'] = $item['bnum'];
+      $hist_result[$i]['date'] = self::date_to_timestamp($item['date']);
+      $i++;
+    }
+    return $hist_result;
   }
   
   /**
@@ -416,6 +424,7 @@ class locum_iii_2007 {
    */
   public function patron_checkout_history_toggle($cardnum, $pin = NULL, $action) {
     $iii = $this->get_tools($cardnum, $pin);
+    if ($iii->catalog_login() == FALSE) { return FALSE; }
     $result = $iii ? $iii->toggle_patron_history($action) : FALSE;
     return $result;
   }
