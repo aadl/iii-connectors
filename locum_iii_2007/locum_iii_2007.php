@@ -26,7 +26,7 @@
  * The Locum connector class for III Mil. 2006.
  * Note the naming convention that is required by Locum: locum _ vendor _ version
  * Also, from a philisophical standpoint, I try to use only public-facing services here,
- * with the exception of the III patron API, which is a product we bought, along with 
+ * with the exception of the III patron API, which is a product we bought, along with
  * practically every other III customer.
  */
 class locum_iii_2007 {
@@ -60,7 +60,7 @@ class locum_iii_2007 {
       return FALSE;
     }
     if ($xrecord->VARFLD) {
-      if (!$xrecord->VARFLD[0]->MARCINFO) { 
+      if (!$xrecord->VARFLD[0]->MARCINFO) {
         return FALSE;
       }
     } else {
@@ -140,7 +140,7 @@ class locum_iii_2007 {
         $bib['title_medium'] = $medium_match[1];
       }
     }
-    
+
     // Edition information
     $bib['edition'] = '';
     $edition = self::prepare_marc_values($bib_info_marc['250'], array('a'));
@@ -167,7 +167,7 @@ class locum_iii_2007 {
       }
     }
     $bib['callnum'] = trim($callnum);
-  
+
     // Publication information
     $bib['pub_info'] = '';
     $pub_info = self::prepare_marc_values($bib_info_marc['260'], array('a','b','c'));
@@ -184,7 +184,7 @@ class locum_iii_2007 {
     $bib['stdnum'] = '';
     $stdnum = self::prepare_marc_values($bib_info_marc['020'], array('a'));
     $bib['stdnum'] = $stdnum[0];
-    
+
     // UPC
     $bib['upc'] = '';
     $upc = self::prepare_marc_values($bib_info_marc['024'], array('a'));
@@ -201,7 +201,7 @@ class locum_iii_2007 {
     $bib['lccn'] = '';
     $lccn = self::prepare_marc_values($bib_info_marc['010'], array('a'));
     $bib['lccn'] = $lccn[0];
-    
+
     // Download Link (if it's a downloadable)
     $bib['download_link'] = '';
     $dl_link = self::prepare_marc_values($bib_info_marc['856'], array('u'));
@@ -229,8 +229,8 @@ class locum_iii_2007 {
     // Subject headings
     $subjects = array();
     $subj_tags = array(
-      '600', '610', '611', '630', '650', '651', 
-      '653', '654', '655', '656', '657', '658', 
+      '600', '610', '611', '630', '650', '651',
+      '653', '654', '655', '656', '657', '658',
       '690', '691', '692', '693', '694', '695',
       '696', '697', '698', '699'
     );
@@ -244,7 +244,7 @@ class locum_iii_2007 {
     }
     $bib['subjects'] = '';
     if (count($subjects)) { $bib['subjects'] = $subjects; }
-    
+
     unset($bib_info_marc);
     return $bib;
   }
@@ -256,9 +256,9 @@ class locum_iii_2007 {
    * @return array Returns a Locum-ready availability array
    */
   public function item_status($bnum) {
-    
+
     $iii_server_info = self::iii_server_info();
-    $avail_token = locum::csv_parser($this->locum_config['ils_custom_config']['iii_available_token']);
+    $avail_token = locum::csv_parser($this->locum_config['iii_custom_config']['iii_available_token']);
     $default_age = $this->locum_config['iii_custom_config']['default_age'];
     $default_branch = $this->locum_config['iii_custom_config']['default_branch'];
     $loc_codes_flipped = array_flip($this->locum_config['iii_location_codes']);
@@ -299,11 +299,11 @@ class locum_iii_2007 {
       $status = trim($matches[5][$i]);
       $age = $default_age;
       $branch = $default_branch;
-      
-      if (in_array($status, $avail_token)) { 
+
+      if (in_array($status, $avail_token)) {
         $avail = 1;
         $due_date = 0;
-      } else { 
+      } else {
         $avail = 0;
         if (preg_match('/DUE/i', $status)) {
           $due_arr = explode(' ', trim($status));
@@ -313,7 +313,7 @@ class locum_iii_2007 {
           $due_date = 0;
         }
       }
-      
+
       // Determine age from location
       if (count($this->locum_config['iii_record_ages'])) {
         foreach ($this->locum_config['iii_record_ages'] as $item_age => $match_crit) {
@@ -324,7 +324,7 @@ class locum_iii_2007 {
           }
         }
       }
-      
+
       // Determine branch from location
       if (count($this->locum_config['branch_assignments'])) {
         foreach ($this->locum_config['branch_assignments'] as $branch_code => $match_crit) {
@@ -335,7 +335,7 @@ class locum_iii_2007 {
           }
         }
       }
-      
+
       $avail_array['items'][] = array(
         'location' => $location,
         'loc_code' => $loc_code,
@@ -347,11 +347,11 @@ class locum_iii_2007 {
         'branch' => $branch,
       );
     }
-    
+
     return $avail_array;
 
   }
-  
+
   /**
    * Returns an array of patron information
    *
@@ -414,7 +414,7 @@ class locum_iii_2007 {
     }
     return $hist_result;
   }
-  
+
   /**
    * Opts patron in or out of checkout history
    *
@@ -428,7 +428,7 @@ class locum_iii_2007 {
     $result = $iii ? $iii->toggle_patron_history($action) : FALSE;
     return $result;
   }
-  
+
   /**
    * Returns an array of patron holds
    *
@@ -441,7 +441,7 @@ class locum_iii_2007 {
     if ($iii->catalog_login() == FALSE) { return FALSE; }
     return $iii->get_patron_holds();
   }
-  
+
   /**
    * Renews items and returns the renewal result
    *
@@ -488,7 +488,7 @@ class locum_iii_2007 {
     if ($iii->catalog_login() == FALSE) { return FALSE; }
     return $iii->place_hold($bnum, $inum, $pickup_loc);
   }
-  
+
   /**
    * Returns an array of patron fines
    *
@@ -502,7 +502,7 @@ class locum_iii_2007 {
     $fines = $iii->get_patron_fines();
     return $fines['items'];
   }
-  
+
   /**
    * Pays patron fines.
    * @param string $cardnum Patron barcode/card number
@@ -529,7 +529,7 @@ class locum_iii_2007 {
     $payment_result = $iii->pay_fine($iii_payment_details);
     return $payment_result;
   }
-  
+
   /**
    * This is an internal function used to parse MARC values.
    * This function is called by scrape_bib()
@@ -563,7 +563,7 @@ class locum_iii_2007 {
             }
           } else {
             if ($i[$subkey]) { $pad[$subkey] = $delimiter; }
-            
+
             // Process unicode for diacritics
             $sv_tmp = trim($subvalue);
             $matches = array();
@@ -577,8 +577,8 @@ class locum_iii_2007 {
             if (trim($subvalue)) { $marc_values[$subkey] .= $pad[$subkey] . $sv_tmp; }
             $i[$subkey] = 1;
           }
-        }  
-      }    
+        }
+      }
     }
 
     if (is_array($marc_values)) {
@@ -627,7 +627,7 @@ class locum_iii_2007 {
   public function fixdate($olddate) {
     return date('Y-m-d', self::date_to_timestamp($olddate));
   }
-  
+
   /**
    * Converts MM-DD-YY to unix timestamp
    *
