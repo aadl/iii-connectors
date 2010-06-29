@@ -12,7 +12,7 @@
  * This is a standalone class that interacts with the III webpac.
  * It provides a PHP interface to all interactive functions within the III webpac.
  *
- * In order to be actively logged in, you must set either $cardnum or $pnum as well 
+ * In order to be actively logged in, you must set either $cardnum or $pnum as well
  * as $pin, even if your library doesn't use pins.  If that's the case, then $pin
  * can be set to anything.
  */
@@ -58,8 +58,8 @@ class iiitools {
     self::catalog_logout();
     if (is_file($this->cookie)) {
       curl_close($this->ch);
-      unset($this->ch); 
-      unlink($this->cookie); 
+      unset($this->ch);
+      unlink($this->cookie);
     }
   }
 
@@ -86,7 +86,7 @@ class iiitools {
     $this->iii_server_info = $iii_server_info;
     $this->papi->iiiserver = $iii_server_info['server'];
   }
-  
+
   /**
    * Sets the pin for the current $pnum or $cardnum within the active instansiation
    *
@@ -114,7 +114,7 @@ class iiitools {
    * @param string $pnum Patron ID number (optional)
    */
   public function set_cookie_file($cardnum = NULL, $pnum = NULL) {
-    
+
     $cookie_dir = '/tmp/cookies_iii';
     if (!is_dir($cookie_dir)) {
       if (is_file($cookie_dir)) {
@@ -180,7 +180,7 @@ class iiitools {
     $result = self::parse_patron_history_items($result['body']);
     return $result;
   }
-  
+
   /**
    * Parses through the raw return from cURL to formulate the array passed back by get_patron_history_items()
    *
@@ -252,14 +252,43 @@ class iiitools {
    * @return array An array of items checked out.
    */
   public function parse_patron_items($itemlist_raw) {
-    
+/*
+    $regex = '%<input type="checkbox" name="(.+?)" value="(.+?)" />(.+?)patFuncTitle">(.+?)</td>(.+?)patFuncBarcode"> (.+?) </td>(.+?)patFuncStatus"> DUE (.+?) (<span  class="patFuncRenewCount">(.+?)</span>)?(.+?)</td>(.+?)patFuncCallNo"> (.+?)</td>%s';
+    $count = preg_match_all($regex, $itemlist_raw, $rawmatch);
+
+    for ($i=0; $i < $count; $i++) {
+      $item[$i][varname] = trim($rawmatch[1][$i]);
+
+      $item[$i][inum] = substr(trim($rawmatch[2][$i]), 1);
+      //$item[$i][bnum] = self::inum_to_bnum($item[$i][inum]);
+      $title_mess = trim($rawmatch[4][$i]);
+      if (preg_match('%href(.+?)</a>%s', $title_mess, $sub_title_mess)) {
+        preg_match('%">(.+?)</a>%s', $sub_title_mess[0], $sub_title_mess_arr);
+        $item[$i][title] = trim($sub_title_mess_arr[1]);
+        $item[$i][ill] = 0;
+      } else {
+        $item[$i][title] = trim($title_mess);
+        $item[$i][ill] = 1;
+      }
+      if (trim($rawmatch[11][$i])) {
+        preg_match('%Renewed (.+?) time%s', $rawmatch[11][$i], $num_renews_raw);
+        $item[$i][numrenews] = trim($num_renews_raw[1]) ? trim($num_renews_raw[1]) : 0;
+      } else {
+        $item[$i][numrenews] = 0;
+      }
+      $item[$i][author] = 'n/a';
+      $item[$i][duedate] = self::date_to_timestamp(trim($rawmatch[8][$i]));
+      $item[$i][callnum] = trim($rawmatch[13][$i]);
+    }
+    return $item;
+*/
     $regex = '%patFuncEntry(.+?)name="(.+?)" value="i(.+?)"(.+?)patFuncTitle"><a href="/patroninfo~S3/(.+?)/item&(.+?)">(.+?)</a>(.+?)DUE(.+?)<(.+?)CallNo">(.+?)</td>%s';
     $count = preg_match_all($regex, $itemlist_raw, $rawmatch);
 
-  
+
     for ($i=0; $i < $count; $i++) {
       $item[$i]['varname'] = trim($rawmatch[2][$i]);
-    
+
       $item[$i]['inum'] = trim($rawmatch[3][$i]);
       $item[$i]['bnum'] = trim($rawmatch[6][$i]);
       $item[$i]['title'] = trim($rawmatch[7][$i]);
@@ -280,7 +309,7 @@ class iiitools {
     return $item;
 
   }
-  
+
   /**
    * Returns an array of on-hold items.
    *
@@ -290,58 +319,39 @@ class iiitools {
 
     $url_suffix = 'patroninfo/' . $this->pnum . '/holds';
     $result = self::my_curl_exec($url_suffix);
-    
     /*
     patFuncMark(.+?)name="(.+?)"(.+?)/patroninfo~S3/(.+?)/item&(.+?)">(.+?)</a>(.+?)patFuncStatus">(.+?)</td>(.+?)patFuncPickup">(.+?)</td>(.+?)patFuncCancel">(.+?)</td>(.+?)patFuncFreeze(.+?)name="(.+?)"(.+?)/></td>
     */
-
-    $regex = '%patFuncMark(.+?)name="(.+?)"(.+?)/patroninfo~S3/(.+?)/item&(.+?)">(.+?)</a>(.+?)patFuncStatus">(.+?)</td>(.+?)patFuncPickup">(.+?)</td>(.+?)patFuncCancel">(.+?)</td>(.+?)patFuncFreeze(.+?)</td>%s';
-  
+    $regex = '%<input type="checkbox" name="(.+?)" /></td>(.+?)patFuncTitle">(.+?)</td>(.+?)patFuncStatus">(.+?)</td>(.+?)patFuncPickup">(.+?)</td>(.+?)patFuncCancel">(.+?)</td>%s';
     $count = preg_match_all($regex, $result['body'], $rawmatch);
-    for ($i=0; $i < $count; $i++) {
-      $item[$i]['varname'] = trim($rawmatch[2][$i]);
-      $item[$i]['bnum'] = trim($rawmatch[5][$i]);
-      $item[$i]['title'] = trim($rawmatch[6][$i]);
 
-      // Check with AADL to see if this work properly
-      if (preg_match('%@%s', $item[$i]['varname'])) {
-        $item[$i]['ill'] = 1;
-      } else {
+    for ($i = 0; $i < $count; $i++) {
+      $item[$i]['varname'] = trim($rawmatch[1][$i]);
+
+      if (!preg_match('%@%s', $item[$i]['varname'])) {
+        preg_match('%item&(.+?)">(.+?)</a>%s', trim($rawmatch[3][$i]), $sub_title_mess_arr);
+        $item[$i]['bnum'] = trim($sub_title_mess_arr[1]);
+        $item[$i]['title'] = trim($sub_title_mess_arr[2]);
         $item[$i]['ill'] = 0;
+      } else {
+        // ILL request
+        $item[$i]['title'] = trim($rawmatch[3][$i]);
+        $item[$i]['ill'] = 1;
       }
-      
-      $status = trim($rawmatch[8][$i]);
-      if ((!preg_match('/of/i', $status)) && (!preg_match('/ready/i', $status)) && (!preg_match('/RECEIVED/i', $status))) { 
+      $status = trim($rawmatch[5][$i]);
+      if ((!preg_match('/of/i', $status)) && (!preg_match('/ready/i', $status)) && (!preg_match('/RECEIVED/i', $status))) {
         $status = "In Transit";
       }
-      $item[$i]['status'] = $status;
-      
-      $pickup_select = trim($rawmatch[10][$i]);
-      preg_match('/select name=(.+?)>/is', $pickup_select, $pickup_var_match);
-      $select_count = preg_match_all('/option value="(.+?)"(.+?)>(.+?)<\/option>/is', $pickup_select, $pickup_select_var_match);
-      $item[$i]['pickuploc']['selectid'] = trim($pickup_var_match[1]);
-      $item[$i]['pickuploc']['options'] = array();
-      for ($j=0; $j < $select_count; $j++) {
-        $item[$i]['pickuploc']['options'][trim($pickup_select_var_match[1][$j])] = trim($pickup_select_var_match[3][$j]);
-        if (trim($pickup_select_var_match[2][$j])) {
-          $item[$i]['pickuploc']['selected'] = trim($pickup_select_var_match[1][$j]);
-        }
-      }
-
-      $canceldate = trim(str_replace('&nbsp;', '', $rawmatch[12][$i]));
+      $item[$i]['status'] = str_replace('hold', 'request', $status); // use 'request' instead of 'hold'
+      $item[$i]['pickuploc'] = trim($rawmatch[7][$i]);
+      $canceldate = trim(str_replace('&nbsp;', '', $rawmatch[9][$i]));
       if ($canceldate) {
         $item[$i]['canceldate'] = $canceldate;
       }
-      
-      if (preg_match('%type="(.+?)" name="(.+?)"(.+?)/>%s', $rawmatch[14][$i], $freezematch)) {
-        $item[$i]['is_frozen'] = (trim($freezematch[3]) == 'checked') ? 1 : 0;
-        $item[$i]['can_freeze'] = (trim($freezematch[1]) == 'checkbox') ? 1 : 0;
-        $item[$i]['freezevar'] = trim($freezematch[2]);
-      } else {
-        $item[$i]['is_frozen'] = 0;
-        $item[$i]['can_freeze'] = 0;
-        $item[$i]['freezevar'] = NULL;
-      }
+      $item[$i]['author'] = 'n/a';
+      $item[$i]['is_frozen'] = 0;
+      $item[$i]['can_freeze'] = 0;
+      $item[$i]['freezevar'] = NULL;
     }
     return $item;
   }
@@ -359,27 +369,27 @@ class iiitools {
     $postvars[] = 'name=' . urlencode($this->patroninfo['PATRNNAME']);
     $postvars[] = 'code=' . $this->cardnum;
     $postvars[] = 'pin=' . $this->pin;
-    $postvars[] = 'neededby_Month=' . date('m');
-    $postvars[] = 'neededby_Day=' . date('d');
-    $postvars[] = 'neededby_Year=' . (int)(date('Y') + 1);
+    $postvars[] = 'needby_Month=' . date('m');
+    $postvars[] = 'needby_Day=' . date('d');
+    $postvars[] = 'needby_Year=' . (int)(date('Y') + 1);
     if ($inum) {
       $postvars[] = 'submit=SUBMIT';
       $postvars[] = 'radio=' . $inum;
     }
     if ($pickup_loc) { $postvars[] = 'loc=' . $pickup_loc; }
     $post = implode('&', $postvars);
-    
+
     // To make sure the record has been freed.  Otherwise we run in to a race condition.
     usleep(300000);
-    
+
     $result = self::my_curl_exec($url_suffix, $post);
-    
+
     if (preg_match('/Your request for(.*?)was successful/is', $result['body'])) {
       $result['success'] = 1;
     } else {
       $result['success'] = 0;
     }
-    
+
     if (preg_match('/<font color="red" size="(.+?)">(.+?)<\/font>/is', $result['body'], $error_match)) {
       $result['error'] = trim($error_match[2]);
     }
@@ -426,7 +436,7 @@ class iiitools {
     $url_suffix = 'patroninfo/' . $this->pnum . '/holds?updateholdssome=TRUE';
 
     $holds = self::get_patron_holds();
-    
+
     $freeze_arr = array();
     $pickup_arr = array();
     $cancel_arr = array();
@@ -437,30 +447,30 @@ class iiitools {
       } else {
         $freeze_arr[$hold['bnum']] = $hold['is_frozen'];
       }
-      
+
       if (isset($pickup_locations[$hold['bnum']])) {
         $pickup_arr[$hold['bnum']] = array('selectid' => $pickup_locations[$hold['bnum']]['selectid'], 'selected' => $pickup_locations[$hold['bnum']]['selected']);
       } else if (isset($hold['pickuploc']['selectid']) && isset($hold['pickuploc']['selected'])) {
         $pickup_arr[$hold['bnum']] = array('selectid' => $hold['pickuploc']['selectid'], 'selected' => $hold['pickuploc']['selected']);
       }
-      
+
       if (isset($cancelholds[$hold['bnum']])) {
         $cancel_arr[$hold['varname']] = trim($cancelholds[$hold['bnum']]);
       }
     }
-    
+
     // Queue up cancelations
     foreach ($cancel_arr as $cancelvar => $cancelval) {
       if ($cancelval) { $getvars[] = $cancelvar . '=1'; }
     }
-    
+
     // Queue up hold freezes
     foreach ($freeze_arr as $bnum => $freeze) {
       if (!isset($cancelholds[$bnum])) {
         $getvars[] = 'freezeb' . $bnum . '=' . ((int) $freeze ? '1' : '0');
       }
     }
-    
+
     // Queue up pickup location changes
     if (count($pickup_arr)) {
       foreach ($pickup_arr as $bnum => $pickup_sel_arr) {
@@ -469,7 +479,7 @@ class iiitools {
         }
       }
     }
-    
+
     $url_suffix .= '&' . implode('&', $getvars);
     usleep(300000); // To make sure the record has been freed.
     $result = self::my_curl_exec($url_suffix);
@@ -494,7 +504,7 @@ class iiitools {
     $result = self::my_curl_exec($url_suffix);
     return $result; // TODO make the return info a little more useful - Handle errors, etc
   }
-  
+
   /**
    * Cancel a hold on a particular item or list of items.
    *
@@ -534,7 +544,7 @@ class iiitools {
     usleep(300000); // To make sure the record has been freed.
     $result = self::my_curl_exec($url_suffix);
     return self::parse_patron_renews($result['body'], $renew_arg);
-  
+
   }
 
   /**
@@ -557,7 +567,7 @@ class iiitools {
         $regex = sprintf($regex_indiv, $varname, $inum_reg);
         preg_match($regex, $renewlist_raw, $rawmatch);
         $extra = $rawmatch[3];
-        if (preg_match('/Renewed(.*?)time/i', $extra, $renew_match)) { 
+        if (preg_match('/Renewed(.*?)time/i', $extra, $renew_match)) {
           $renew_res[$inum]['num_renews'] = (int) trim($renew_match[1]);
         } else {
           $renew_res[$inum]['num_renews'] = 0;
@@ -627,7 +637,7 @@ class iiitools {
     }
     return $fines;
   }
-  
+
   /**
   * Pays fines for whichever fines are passed through to the function.
   * $payment_arr looks like:
@@ -648,7 +658,7 @@ class iiitools {
   * @return array Payment results array.
   */
   function pay_fine($payment_arr) {
-    
+
     $fines = self::get_patron_fines();
     $sessionkey = $fines['sessionkey'];
     $url_suffix_stage1 = 'webapp/iii/ecom/validatePay.do';
@@ -661,7 +671,7 @@ class iiitools {
           $postvars .= '&selectedFees=' . trim($pid);
         }
       } else {
-        $postvars .= '&' . $pkey . '=' . urlencode($pval);        
+        $postvars .= '&' . $pkey . '=' . urlencode($pval);
       }
 
     }
@@ -738,10 +748,10 @@ class iiitools {
     while (!$body) {
       $body = curl_exec($this->ch);
       if ($no_loop) {
-        return self::parse_response($body); 
+        return self::parse_response($body);
       }
       $curl_loop++;
-      if ($curl_loop == 10) { 
+      if ($curl_loop == 10) {
         return "Unable to contact catalog. ($curl_url) Please try again later.<br/><br/>";
       }
     }
