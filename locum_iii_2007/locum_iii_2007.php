@@ -309,6 +309,9 @@ class locum_iii_2007 {
           $due_arr = explode(' ', trim($status));
           $due_date_arr = explode('-', $due_arr[1]);
           $due_date = mktime(0, 0, 0, $due_date_arr[0], $due_date_arr[1], (2000 + (int) $due_date_arr[2]));
+        } else if(preg_match('/LIB USE ONLY/i', $status)) {
+          $due_date = 0;
+          $libuse = 1;
         } else {
           $due_date = 0;
         }
@@ -345,6 +348,7 @@ class locum_iii_2007 {
         'avail' => $avail,
         'age' => $age,
         'branch' => $branch,
+        'libuse' => $libuse,
       );
     }
 
