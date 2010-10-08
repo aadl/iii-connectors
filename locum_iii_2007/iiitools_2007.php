@@ -252,62 +252,46 @@ class iiitools {
    * @return array An array of items checked out.
    */
   public function parse_patron_items($itemlist_raw) {
-/*
-    $regex = '%<input type="checkbox" name="(.+?)" value="(.+?)" />(.+?)patFuncTitle">(.+?)</td>(.+?)patFuncBarcode"> (.+?) </td>(.+?)patFuncStatus"> DUE (.+?) (<span  class="patFuncRenewCount">(.+?)</span>)?(.+?)</td>(.+?)patFuncCallNo"> (.+?)</td>%s';
-    $count = preg_match_all($regex, $itemlist_raw, $rawmatch);
+    // Grab all patFuncEntry rows
+    $row_count = preg_match_all('%<tr.+?patFuncEntry.+?>(.+?)</tr>%s', $itemlist_raw, $rowmatch);
+    for ($i = 0; $i < $row_count; $i++) {
 
-    for ($i=0; $i < $count; $i++) {
-      $item[$i][varname] = trim($rawmatch[1][$i]);
-
-      $item[$i][inum] = substr(trim($rawmatch[2][$i]), 1);
-      //$item[$i][bnum] = self::inum_to_bnum($item[$i][inum]);
-      $title_mess = trim($rawmatch[4][$i]);
-      if (preg_match('%href(.+?)</a>%s', $title_mess, $sub_title_mess)) {
-        preg_match('%">(.+?)</a>%s', $sub_title_mess[0], $sub_title_mess_arr);
-        $item[$i][title] = trim($sub_title_mess_arr[1]);
-        $item[$i][ill] = 0;
-      } else {
-        $item[$i][title] = trim($title_mess);
-        $item[$i][ill] = 1;
+      // Grab all table cells in the Entry
+      $cellmatch = '';
+      $item_data = array();
+      $cell_count = preg_match_all('%<td.+?class="(.+?)">(.+?)</td>%s', $rowmatch[1][$i], $cellmatch);
+      for ($j = 0; $j < $cell_count; $j++) {
+        $item_data[$cellmatch[1][$j]] = $cellmatch[2][$j];
       }
-      if (trim($rawmatch[11][$i])) {
-        preg_match('%Renewed (.+?) time%s', $rawmatch[11][$i], $num_renews_raw);
-        $item[$i][numrenews] = trim($num_renews_raw[1]) ? trim($num_renews_raw[1]) : 0;
-      } else {
-        $item[$i][numrenews] = 0;
+
+      // Parse individual cell data
+      preg_match('%name="(.+?)".+?value="i(.+?)"%s', $item_data['patFuncMark'], $mark_match);
+      $item[$i]['varname'] = $mark_match[1];
+      $item[$i]['inum'] = $mark_match[2];
+
+      preg_match('%\/[0-9]{7}\/item&([0-9]{7})%s', $item_data['patFuncTitle'], $title_match);
+      if ($title_match[1]) {
+        $item[$i]['bnum'] = $title_match[1];
+        $item[$i]['ill'] = 0;
       }
-      $item[$i][author] = 'n/a';
-      $item[$i][duedate] = self::date_to_timestamp(trim($rawmatch[8][$i]));
-      $item[$i][callnum] = trim($rawmatch[13][$i]);
-    }
-    return $item;
-*/
-    $regex = '%patFuncEntry(.+?)name="(.+?)" value="i(.+?)"(.+?)patFuncTitle"><a href="/patroninfo~S3/(.+?)/item&(.+?)">(.+?)</a>(.+?)DUE(.+?)<(.+?)CallNo">(.+?)</td>%s';
-    $count = preg_match_all($regex, $itemlist_raw, $rawmatch);
+      else {
+        $item[$i]['ill'] = 1;
+      }
+      $item[$i]['title'] = trim(strip_tags($item_data['patFuncTitle']));
 
-
-    for ($i=0; $i < $count; $i++) {
-      $item[$i]['varname'] = trim($rawmatch[2][$i]);
-
-      $item[$i]['inum'] = trim($rawmatch[3][$i]);
-      $item[$i]['bnum'] = trim($rawmatch[6][$i]);
-      $item[$i]['title'] = trim($rawmatch[7][$i]);
-
-      // Todo - Talk with AADL about doing this differently.  For now, it's hard-coded to no ILL.
-      $item[$i]['ill'] = 0;
-
-      if (trim($rawmatch[10][$i])) {
-        preg_match('%Renewed (.+?) time%s', $rawmatch[10][$i], $num_renews_raw);
-        $item[$i]['numrenews'] = trim($num_renews_raw[1]) ? trim($num_renews_raw[1]) : 0;
-      } else {
+      preg_match('%Renewed ([0-9]+) times%', $item_data['patFuncStatus'], $renew_match);
+      if ($renew_match[1]) {
+        $item[$i]['numrenews'] = $renew_match[1];
+      }
+      else {
         $item[$i]['numrenews'] = 0;
       }
 
-      $item[$i]['duedate'] = self::date_to_timestamp(trim($rawmatch[9][$i]));
-      $item[$i]['callnum'] = trim($rawmatch[11][$i]);
+      preg_match('%DUE ([\d]{2}-[\d]{2}-[\d]{2})%', $item_data['patFuncStatus'], $duedate_match);
+      $item[$i]['duedate'] = self::date_to_timestamp($duedate_match[1]);
+      $item[$i]['callnum'] = trim($item_data['patFuncCallNo']);
     }
     return $item;
-
   }
 
   /**

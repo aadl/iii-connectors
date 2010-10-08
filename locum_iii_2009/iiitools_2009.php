@@ -254,26 +254,44 @@ class iiitools {
    * @return array An array of items checked out.
    */
   public function parse_patron_items($itemlist_raw) {
-    $regex = '%patFuncEntry.+?patFuncMark.+?name="(.+?)".+?value="i(.+?)".+?patFuncTitle.+?<a href="/record=b(.+?)~S5">(.+?)</a>.+?patFuncStatus">(.+?)</td>.+?CallNo">(.+?)</td>%s';
-    $count = preg_match_all($regex, $itemlist_raw, $rawmatch);
+        // Grab all patFuncEntry rows
+    $row_count = preg_match_all('%<tr.+?patFuncEntry.+?>(.+?)</tr>%s', $itemlist_raw, $rowmatch);
+    for ($i = 0; $i < $row_count; $i++) {
 
-    for ($i=0; $i < $count; $i++) {
-      $item[$i]['varname'] = trim($rawmatch[1][$i]);
-      $item[$i]['inum'] = trim($rawmatch[2][$i]);
-      $item[$i]['bnum'] = trim($rawmatch[3][$i]);
-      $item[$i]['title'] = trim($rawmatch[4][$i]);
+      // Grab all table cells in the Entry
+      $cellmatch = '';
+      $item_data = array();
+      $cell_count = preg_match_all('%<td.+?class="(.+?)">(.+?)</td>%s', $rowmatch[1][$i], $cellmatch);
+      for ($j = 0; $j < $cell_count; $j++) {
+        $item_data[$cellmatch[1][$j]] = $cellmatch[2][$j];
+      }
 
-      // parse duedate and renew count from patFuncStatus data
-      $patFuncStatus = trim($rawmatch[5][$i]);
-      preg_match('/DUE ([0-9-]{8})/', $patFuncStatus, $duedate_match);
+      // Parse individual cell data
+      preg_match('%name="(.+?)".+?value="i(.+?)"%s', $item_data['patFuncMark'], $mark_match);
+      $item[$i]['varname'] = $mark_match[1];
+      $item[$i]['inum'] = $mark_match[2];
+
+      preg_match('%record=b([0-9]{7})%s', $item_data['patFuncTitle'], $title_match);
+      if ($title_match[1]) {
+        $item[$i]['bnum'] = $title_match[1];
+        $item[$i]['ill'] = 0;
+      }
+      else {
+        $item[$i]['ill'] = 1;
+      }
+      $item[$i]['title'] = trim(strip_tags($item_data['patFuncTitle']));
+
+      preg_match('%Renewed ([0-9]+) times%', $item_data['patFuncStatus'], $renew_match);
+      if ($renew_match[1]) {
+        $item[$i]['numrenews'] = $renew_match[1];
+      }
+      else {
+        $item[$i]['numrenews'] = 0;
+      }
+
+      preg_match('%DUE ([\d]{2}-[\d]{2}-[\d]{2})%', $item_data['patFuncStatus'], $duedate_match);
       $item[$i]['duedate'] = self::date_to_timestamp($duedate_match[1]);
-      preg_match('/Renewed ([0-9]+) times/', $patFuncStatus, $renew_match);
-      $item[$i]['numrenews'] = intval($renew_match[1]);
-
-      $item[$i]['callnum'] = trim($rawmatch[6][$i]);
-
-      // Todo - Talk with AADL about doing this differently.  For now, it's hard-coded to no ILL.
-      $item[$i]['ill'] = 0;
+      $item[$i]['callnum'] = trim($item_data['patFuncCallNo']);
     }
     return $item;
   }
@@ -345,28 +363,19 @@ class iiitools {
    * @return array my_curl_exec result array
    */
   public function place_hold($bnum = NULL, $inum = NULL, $pickup_loc = NULL) {
-
-    $url_suffix = 'search~S5/.b' . $bnum . '/.b' . $bnum . '/1,1,1,B/request~b' . $bnum;
-    $postvars[] = 'name=' . "Dworianyn%2C+Richard+T";
-    $postvars[] = 'code=' . "21184005529091";
+    $url_suffix = 'search~S24/.b' . $bnum . '/.b' . $bnum . '/1,1,1,B/request~b' . $bnum;
+    $postvars[] = 'name=' . urlencode($this->patroninfo['PATRNNAME']);
+    $postvars[] = 'code=' . $this->cardnum;
     $postvars[] = 'pin=' . $this->pin;
-    $postvars[] = 'neededby_Month=' . date('m');
-    $postvars[] = 'neededby_Day=' . date('d');
-    $postvars[] = 'neededby_Year=' . (int)(date('Y') + 1);
-  $postvars[] = 'submit=SUBMIT';
+    $postvars[] = 'needby_Month=' . date('m');
+    $postvars[] = 'needby_Day=' . date('d');
+    $postvars[] = 'needby_Year=' . (int)(date('Y') + 1);
     if ($inum) {
       $postvars[] = 'submit=SUBMIT';
       $postvars[] = 'radio=' . $inum;
     }
-    if ($pickup_loc) {
-  $postvars[] = 'loc=' . $pickup_loc;
-  }
+    if ($pickup_loc) { $postvars[] = 'loc=' . $pickup_loc; }
     $post = implode('&', $postvars);
-
-
-  //$url Suffix = search~S5/.b1491430/.b1491430/1,1,1,B/request~b1491430
-  //$post = name=Dworianyn%2C+Richard+T&code=21184005529091&pin=e10adc3&neededby_Month=05&neededby_Day=12&neededby_Year=2011
-
 
     // To make sure the record has been freed.  Otherwise we run in to a race condition.
     usleep(300000);
