@@ -139,7 +139,7 @@ class iiitools {
   public function catalog_login() { // TODO add boolean result
     if (!isset($this->patroninfo)) { exit('Patron Info not yet initialized'); }
     if (!$this->pin) { exit('PIN not yet set'); }
-    $form_url = "patroninfo~S5/";
+    $form_url = "patroninfo~S24/";
   $this->my_curl_exec($form_url, NULL, NULL, NULL, TRUE, TRUE, TRUE);
     $postvars = 'name=' . $this->patroninfo['PATRNNAME'] . '&code=' . $this->cardnum . '&pin=' . $this->pin;
     return self::my_curl_exec($form_url, $postvars, NULL, NULL, TRUE);
@@ -162,10 +162,10 @@ class iiitools {
    */
   public function get_patron_items($sort_by_due = TRUE) {
     if ($sort_by_due) {
-    $url_suffix = 'patroninfo~S5/' . $this->pnum . '/items?sortByDueDate=SORT+BY+DUE+DATE';
+    $url_suffix = 'patroninfo~S24/' . $this->pnum . '/items?sortByDueDate=SORT+BY+DUE+DATE';
   }
   else {
-      $url_suffix = 'patroninfo~S5/' . $this->pnum . '/items';
+      $url_suffix = 'patroninfo~S24/' . $this->pnum . '/items';
     }
     $result = self::my_curl_exec($url_suffix);
     return self::parse_patron_items($result['body']);
@@ -177,7 +177,7 @@ class iiitools {
    * @return array An array of items checked out.
    */
   public function get_patron_history_items() {
-    $url_suffix = 'patroninfo~S5/' . $this->pnum . '/readinghistory';
+    $url_suffix = 'patroninfo~S24/' . $this->pnum . '/readinghistory';
     $result = self::my_curl_exec($url_suffix);
     $result = self::parse_patron_history_items($result['body']);
     return $result;
@@ -190,7 +190,7 @@ class iiitools {
    */
   public function parse_patron_history_items($itemslist_raw) {
     //print_r ($itemslist_raw);
-    $regex = '%<input type="checkbox" name="(.+?)" />.+?patFuncTitle"><a href="/record=b(.+?)~S5">(.+?)</a>.+?patFuncAuthor">(.+?)</td>.+?patFuncDate">(.+?)</td>.+?"patFuncDetails">(.+?)</td>%s';
+    $regex = '%<input type="checkbox" name="(.+?)" />.+?patFuncTitle"><a href="/record=b(.+?)~S24">(.+?)</a>.+?patFuncAuthor">(.+?)</td>.+?patFuncDate">(.+?)</td>.+?"patFuncDetails">(.+?)</td>%s';
     $count = preg_match_all($regex, $itemslist_raw, $rawmatch);
     for ($i=0; $i < $count; $i++) {
       $items[$i]['varname'] = trim($rawmatch[1][$i]);
@@ -226,7 +226,7 @@ class iiitools {
       }
     }
     else { return FALSE; }
-    $url_suffix = 'patroninfo~S5/' . $this->pnum . '/readinghistory/' . $action;
+    $url_suffix = 'patroninfo~S24/' . $this->pnum . '/readinghistory/' . $action;
     $result = self::my_curl_exec($url_suffix);
     $success = strpos($result['body'], 'readinghistory/' . $goal) !== FALSE;
     return $success;
@@ -239,7 +239,7 @@ class iiitools {
    */
   public function delete_patron_history($which = array()) {
     if (!count($which)) { return FALSE; }
-    $url_suffix = 'patroninfo~S5/' . $this->pnum . '/readinghistory/';
+    $url_suffix = 'patroninfo~S24/' . $this->pnum . '/readinghistory/';
     if ($which[0] == 'all') {
       $result = self::my_curl_exec($url_suffix . 'rah');
       $success = strpos($result['body'], 'No Reading History Available' . $goal) !== FALSE;
@@ -302,10 +302,10 @@ class iiitools {
    * @return array An array of on-hold items.
    */
   public function get_patron_holds() {
-    $url_suffix = 'patroninfo~S5/' . $this->pnum . '/holds';
+    $url_suffix = 'patroninfo~S24/' . $this->pnum . '/holds';
     $result = self::my_curl_exec($url_suffix);
 
-    $regex = '%patFuncEntry.+?patFuncMark.+?name="(.+?)".+?patFuncTitle.+?<a href="/record=b(.+?)~S5">(.+?)</a>.+?patFuncStatus">(.+?)</td>.+?patFuncPickup">(.+?)</td>.+?patFuncCancel">(.+?)</td>.+?patFuncFreeze.+?>(.+?)</td>%s';
+    $regex = '%patFuncEntry.+?patFuncMark.+?name="(.+?)".+?patFuncTitle.+?<a href="/record=b(.+?)~S24">(.+?)</a>.+?patFuncStatus">(.+?)</td>.+?patFuncPickup">(.+?)</td>.+?patFuncCancel">(.+?)</td>.+?patFuncFreeze.+?>(.+?)</td>%s';
 
     $count = preg_match_all($regex, $result['body'], $rawmatch);
 
@@ -431,7 +431,7 @@ class iiitools {
    * @return array my_curl_exec result array
    */
   public function update_holds($cancelholds = array(), $holdfreezes_to_update, $pickup_locations = array()) {
-    $url_suffix = 'patroninfo~S5/' . $this->pnum . '/holds?updateholdssome=TRUE';
+    $url_suffix = 'patroninfo~S24/' . $this->pnum . '/holds?updateholdssome=YES';
 
     $holds = self::get_patron_holds();
 
@@ -459,13 +459,13 @@ class iiitools {
 
     // Queue up cancelations
     foreach ($cancel_arr as $cancelvar => $cancelval) {
-      if ($cancelval) { $getvars[] = $cancelvar . '=1'; }
+      if ($cancelval) { $getvars[] = $cancelvar . '=on'; }
     }
 
     // Queue up hold freezes
     foreach ($freeze_arr as $bnum => $freeze) {
       if (!isset($cancelholds[$bnum])) {
-        $getvars[] = 'freezeb' . $bnum . '=' . ((int) $freeze ? '1' : '0');
+        $getvars[] = 'freezeb' . $bnum . '=' . ((int) $freeze ? 'on' : 'off');
       }
     }
 
@@ -492,9 +492,9 @@ class iiitools {
    * @return array my_curl_exec result array
    */
   public function cancel_holds($holdvars) {
-    $url_suffix = 'patroninfo~S5/' . $this->pnum . '/holds?updateholdssome=TRUE';
+    $url_suffix = 'patroninfo~S24/' . $this->pnum . '/holds?updateholdssome=YES';
     foreach ($holdvars as $var1 => $var2) {
-      $getvars[] = $var2 . '=1';
+      $getvars[] = $var2 . '=on';
     }
     $cancelations = implode('&', $getvars);
     $url_suffix .= '&' . $cancelations;
@@ -510,9 +510,9 @@ class iiitools {
    * @return array my_curl_exec result array
    */
   public function update_holdfreezes($holdfreezes_to_update) {
-    $url_suffix = 'patroninfo~S5/' . $this->pnum . '/holds?updateholdssome=TRUE';
+    $url_suffix = 'patroninfo~S24/' . $this->pnum . '/holds?updateholdssome=YES';
     foreach ($holdfreezes_to_update as $bnum => $freeze) {
-      $getvars[] = 'freezeb' . $bnum . '=' . ((int) $freeze ? '1' : '0');
+      $getvars[] = 'freezeb' . $bnum . '=' . ((int) $freeze ? 'on' : 'off');
     }
     $updates = implode('&', $getvars);
     $url_suffix .= '&' . $updates;
@@ -535,9 +535,9 @@ class iiitools {
         $get_args[] = $varname . '=' . $inum;
       }
       $args = implode('&', $get_args);
-      $url_suffix = 'patroninfo~S5/' . $this->pnum . '/sorteditems?renewsome=TRUE&' . $args;
+      $url_suffix = 'patroninfo~S24/' . $this->pnum . '/items?renewsome=YES&' . $args;
     } else if (strtolower($renew_arg) == 'all') {
-      $url_suffix = 'patroninfo~S5/' . $this->pnum . '/sorteditems?renewall';
+      $url_suffix = 'patroninfo~S24/' . $this->pnum . '/items?renewall';
     }
     usleep(300000); // To make sure the record has been freed.
     $result = self::my_curl_exec($url_suffix);
