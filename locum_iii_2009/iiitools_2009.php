@@ -305,7 +305,7 @@ class iiitools {
     $url_suffix = 'patroninfo~S24/' . $this->pnum . '/holds';
     $result = self::my_curl_exec($url_suffix);
 
-    $regex = '%patFuncEntry.+?patFuncMark.+?name="(.+?)".+?patFuncTitle.+?<a href="/record=b(.+?)~S24">(.+?)</a>.+?patFuncStatus">(.+?)</td>.+?patFuncPickup">(.+?)</td>.+?patFuncCancel">(.+?)</td>.+?patFuncFreeze.+?>(.+?)</td>%s';
+    $regex = '%patFuncEntry.+?patFuncMark.+?name="(.+?)".+?patFuncTitle.+?<a href="/record=b(.+?)~S24">(.+?)</a>.+?patFuncStatus">(.+?)</td>.+?patFuncPickup">(.+?)</td>.+?patFuncCancel">(.+?)</td>%s';
 
     $count = preg_match_all($regex, $result['body'], $rawmatch);
 
