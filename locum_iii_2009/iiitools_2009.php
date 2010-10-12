@@ -261,7 +261,7 @@ class iiitools {
       // Grab all table cells in the Entry
       $cellmatch = '';
       $item_data = array();
-      $cell_count = preg_match_all('%<td.+?class="(.+?)">(.+?)</td>%s', $rowmatch[1][$i], $cellmatch);
+      $cell_count = preg_match_all('%<td.+?class="(.+?)".*?>(.+?)</td>%s', $rowmatch[1][$i], $cellmatch);
       for ($j = 0; $j < $cell_count; $j++) {
         $item_data[$cellmatch[1][$j]] = $cellmatch[2][$j];
       }
@@ -305,46 +305,46 @@ class iiitools {
     $url_suffix = 'patroninfo~S24/' . $this->pnum . '/holds';
     $result = self::my_curl_exec($url_suffix);
 
-    $regex = '%patFuncEntry.+?patFuncMark.+?name="(.+?)".+?patFuncTitle.+?<a href="/record=b(.+?)~S24">(.+?)</a>.+?patFuncStatus">(.+?)</td>.+?patFuncPickup">(.+?)</td>.+?patFuncCancel">(.+?)</td>%s';
-
-    $count = preg_match_all($regex, $result['body'], $rawmatch);
-
-    for ($i=0; $i < $count; $i++) {
-      //$rawmatch[1][$1] - Cancel ID - cancelb1940065x00
-      //$rawmatch[2][$1] - Bib Number - 1940065
-      //$rawmatch[3][$1] - Title - Avatar [Blu-ray] / Twentieth Century Fox presents a james Cameron film
-      //$rawmatch[4][$1] - Status - 5 of 21 Holds
-      //$rawmatch[5][$1] - Location - Express Reserve Pickup Shelves
-      //$rawmatch[6][$1] - Cancel Date
-      //$rawmatch[7][$1] - Freeze ID - freezeb1940065
-
-      $item[$i]['varname'] = trim($rawmatch[1][$i]);
-      $item[$i]['bnum'] = trim($rawmatch[2][$i]);
-      $item[$i]['title'] = trim($rawmatch[3][$i]);
-
-      // Check with AADL to see if this work properly
-      if (preg_match('%@%s', $item[$i]['varname'])) {
-        $item[$i]['ill'] = 1;
-      } else {
-        $item[$i]['ill'] = 0;
+    $row_count = preg_match_all('%<tr.+?patFuncEntry.+?>(.+?)</tr>%s', $result['body'], $rowmatch);
+    for ($i = 0; $i < $row_count; $i++) {
+      // Grab all table cells in the Entry
+      $cellmatch = '';
+      $item_data = array();
+      $cell_count = preg_match_all('%<td.+?class="(.+?)".*?>(.+?)</td>%s', $rowmatch[1][$i], $cellmatch);
+      for ($j = 0; $j < $cell_count; $j++) {
+        $item_data[$cellmatch[1][$j]] = $cellmatch[2][$j];
       }
 
-      $status = trim($rawmatch[4][$i]);
+      // Parse individual cell data
+      preg_match('%name="(.+?)"%s', $item_data['patFuncMark'], $mark_match);
+      $item[$i]['varname'] = $mark_match[1];
+
+      preg_match('%record=b([0-9]{7})%s', $item_data['patFuncTitle'], $title_match);
+      if ($title_match[1]) {
+        $item[$i]['bnum'] = $title_match[1];
+        $item[$i]['ill'] = 0;
+      }
+      else {
+        $item[$i]['ill'] = 1;
+      }
+      $item[$i]['title'] = trim(strip_tags($item_data['patFuncTitle']));
+
+      $status = trim($item_data['patFuncStatus']);
       if ((!preg_match('/of/i', $status)) && (!preg_match('/ready/i', $status)) && (!preg_match('/RECEIVED/i', $status))) {
         $status = "In Transit";
       }
       $item[$i]['status'] = $status;
 
-      $item[$i]['pickuploc'] = trim($rawmatch[5][$i]);
+      $item[$i]['pickuploc'] = trim($item_data['patFuncPickup']);
 
-      $canceldate = trim(str_replace('&nbsp;', '', $rawmatch[6][$i]));
-      if ($canceldate) {
-        $item[$i]['canceldate'] = $canceldate;
+      if ($item_data['patFuncCancel']) {
+        $item[$i]['canceldate'] = trim($item_data['patFuncCancel']);
       }
 
-      if (preg_match('/freezeb([0-9]+)/i', $rawmatch[7][$i], $freezematch)) {
-        $item[$i]['is_frozen'] = (strpos($rawmatch[7][$i], 'checked') !== FALSE ? 1 : 0);
-        $item[$i]['can_freeze'] = (strpos($rawmatch[7][$i], 'checkbox') !== FALSE ? 1 : 0);
+      if ($item_data['patFuncFreeze']) {
+        $item[$i]['is_frozen'] = (strpos($item_data['patFuncFreeze'], 'checked') !== FALSE ? 1 : 0);
+        $item[$i]['can_freeze'] = (strpos($item_data['patFuncFreeze'], 'checkbox') !== FALSE ? 1 : 0);
+        preg_match('/freezeb([0-9]+)/i', $rawmatch[7][$i], $freezematch);
         $item[$i]['freezevar'] = trim($freezematch[0]);
       } else {
         $item[$i]['is_frozen'] = 0;
@@ -352,6 +352,7 @@ class iiitools {
         $item[$i]['freezevar'] = NULL;
       }
     }
+
     return $item;
   }
 
