@@ -307,7 +307,6 @@ class iiitools {
 
     $row_count = preg_match_all('%<tr.+?patFuncEntry.+?>(.+?)</tr>%s', $result['body'], $rowmatch);
     for ($i = 0; $i < $row_count; $i++) {
-
       // Grab all table cells in the Entry
       $cellmatch = '';
       $item_data = array();

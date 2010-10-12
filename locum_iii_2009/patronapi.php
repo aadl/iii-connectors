@@ -85,6 +85,15 @@ class iii_patronapi {
   */
   public function get_api_contents($apiurl) {
     $api_contents = file_get_contents($apiurl);
+/*
+    $useragent="Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.1) Gecko/20061204 Firefox/2.0.0.1";
+    $ch = curl_init();
+    curl_setopt ($ch, CURLOPT_USERAGENT, $useragent);
+    curl_setopt ($ch, CURLOPT_URL,$apiurl);
+    curl_setopt ($ch, CURLOPT_HEADER, 0);
+    curl_setopt ($ch, CURLOPT_RETURNTRANSFER, 1);
+    $api_contents = curl_exec ($ch);
+*/
     $api_contents = trim(strip_tags($api_contents));
     return $api_contents;
   }
