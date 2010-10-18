@@ -183,8 +183,14 @@ class locum_iii_2009 {
 				$callnum .= $cn_sub . ' ';
 			}
 		}
-		$bib[callnum] = trim($callnum);
-
+		$bib['callnum'] = trim($callnum);
+		$shelving_arr = array('a','b','i','l','x');
+		if(in_array($bib['mat_code'],$shelving_arr)) {
+    $shelving = self::prepare_marc_values($bib_info_marc['130'], array('a'));
+    if($shelving[0]){ $shelving = explode(" ", $shelving[0]); }
+    $bib['callnum'] .= " " .trim(preg_replace('/\W/', ' ', $shelving[0]));
+    }
+    
 		// Publication information
 		$bib[pub_info] = '';
 		$pub_info = self::prepare_marc_values($bib_info_marc['260'], array('a','b','c'));
