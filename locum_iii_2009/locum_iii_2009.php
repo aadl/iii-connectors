@@ -97,156 +97,170 @@ class locum_iii_2009 {
 
       }
     }
-
+    if($bib[bcode3] == 'n' || $bib[bcode3] == 'd' || $bib[bcode3] == 'p'){ return FALSE;}
     // Process MARC fields
+		// Process Author information
+		$bib[author] = '';
+		$author_arr = self::prepare_marc_values($bib_info_marc['100'], array('a','b','c','d'));
+		$bib[author] = $author_arr[0];
 
-    // Process Author information
-    $bib['author'] = '';
-    $author_arr = self::prepare_marc_values($bib_info_marc['100'], array('a','b','c','d'));
-    $bib['author'] = $author_arr[0];
+		// In no author info, we'll go for the 110 field
+		if (!$bib[author]) {
+			$author_110 = self::prepare_marc_values($bib_info_marc['110'], array('a'));
+			$bib[author] = $author_110[0];
+		}
 
-    // In no author info, we'll go for the 110 field
-    if (!$bib['author']) {
-      $author_110 = self::prepare_marc_values($bib_info_marc['110'], array('a'));
-      $bib['author'] = $author_110[0];
+		// Additional author information
+		$bib[addl_author] = '';
+		$addl_author = self::prepare_marc_values($bib_info_marc['700'], array('a','b','c','d'));
+		if (is_array($addl_author)) {
+			$bib[addl_author] = serialize($addl_author);
+		}
+
+		// In no additional author info, we'll go for the 710 field
+		if (!$bib[addl_author]) {
+			$author_710 = self::prepare_marc_values($bib_info_marc['710'], array('a'));
+			if (is_array($author_710)) {
+				$bib[addl_author] = serialize($author_710);
+			}
+		}
+
+		// Title information
+		$bib[title] = '';
+		$title = self::prepare_marc_values($bib_info_marc['245'], array('a','b'));
+		if (substr($title[0], -1) == '/') { $title[0] = trim(substr($title[0], 0, -1)); }
+		$bib[title] = trim($title[0]);
+
+		// Title subfield information (disc and season information)
+		$bib[title_medium] = '';
+		//$title_medium = self::prepare_marc_values($bib_info_marc['245'], array('h'));
+		$volume = self::prepare_marc_values($bib_info_marc['245'], array('n'));
+		$disc = self::prepare_marc_values($bib_info_marc['245'], array('p'));
+		if (substr($disc[0], -1) == '/') { $disc[0] = trim(substr($disc[0], 0, -1)); }
+		if (substr($volume[0], -1) == '/') { $volume[0] = trim(substr($volume[0], 0, -1)); }
+		if($volume[0] && $disc[0]) { $bib[title_medium] = $volume[0] . " " . $disc[0]; }
+		else if($volume[0]) { $bib[title_medium] = $volume[0]; }
+		else { $bib[title_medium] = $disc[0]; }
+
+    // Additional Titles
+    $bib[addl_title] = '';
+    $addl_title = array();
+    $addltitle_tags = array('730','246','240');
+		foreach ($addltitle_tags as $addltitle_tag) {
+			$addltitle_arr = self::prepare_marc_values($bib_info_marc[$addltitle_tag], array('a'));
+			if (is_array($addltitle_arr)) {
+				foreach ($addltitle_arr as $addltitle_arr_val) {
+					array_push($addl_title, $addltitle_arr_val);
+				}
+			}
+		}
+		if (is_array($addl_title) && !empty($addltitle_arr)) {
+  	 $bib[addl_title] = serialize($addl_title);
     }
 
-    // Additional author information
-    $bib['addl_author'] = '';
-    $addl_author = self::prepare_marc_values($bib_info_marc['700'], array('a','b','c','d'));
-    if (is_array($addl_author)) {
-      $bib['addl_author'] = serialize($addl_author);
-    }
+		// Edition information
+		$bib[edition] = '';
+		$edition = self::prepare_marc_values($bib_info_marc['250'], array('a'));
+		$bib[edition] = trim($edition[0]);
 
-    // In no additional author info, we'll go for the 710 field
-    if (!$bib['addl_author']) {
-      $author_710 = self::prepare_marc_values($bib_info_marc['710'], array('a'));
-      if (is_array($author_710)) {
-        $bib['addl_author'] = serialize($author_710);
-      }
-    }
+		// Series information
+		$bib[series] = '';
+		$series = self::prepare_marc_values($bib_info_marc['490'], array('a','v'));
+		if (!$series[0]) { $series = self::prepare_marc_values($bib_info_marc['440'], array('a','v')); }
+		if (!$series[0]) { $series = self::prepare_marc_values($bib_info_marc['400'], array('a','v')); }
+		if (!$series[0]) { $series = self::prepare_marc_values($bib_info_marc['410'], array('a','v')); }
+		if (!$series[0]) { $series = self::prepare_marc_values($bib_info_marc['730'], array('a','v')); }
+		if (!$series[0]) { $series = self::prepare_marc_values($bib_info_marc['800'], array('a','v')); }
+		if (!$series[0]) { $series = self::prepare_marc_values($bib_info_marc['810'], array('a','v')); }
+		if (!$series[0]) { $series = self::prepare_marc_values($bib_info_marc['830'], array('a','v')); }
+		$bib[series] = $series[0];
 
-    // Title information
-    $bib['title'] = '';
-    $title = self::prepare_marc_values($bib_info_marc['245'], array('a','b'));
-    if (substr($title[0], -1) == '/') { $title[0] = trim(substr($title[0], 0, -1)); }
-    $bib['title'] = trim($title[0]);
+		// Call number
+		$callnum = '';
+		$callnum_arr = self::prepare_marc_values($bib_info_marc['099'], array('a'));
+		if (is_array($callnum_arr) && count($callnum_arr)) {
+			foreach ($callnum_arr as $cn_sub) {
+				$callnum .= $cn_sub . ' ';
+			}
+		}
+		$bib[callnum] = trim($callnum);
 
-    // Title medium information
-    $bib['title_medium'] = '';
-    $title_medium = self::prepare_marc_values($bib_info_marc['245'], array('h'));
-    if ($title_medium[0]) {
-      if (preg_match('/\[(.*?)\]/', $title_medium[0], $medium_match)) {
-        $bib['title_medium'] = $medium_match[1];
-      }
-    }
+		// Publication information
+		$bib[pub_info] = '';
+		$pub_info = self::prepare_marc_values($bib_info_marc['260'], array('a','b','c'));
+		$bib[pub_info] = $pub_info[0];
 
-    // Edition information
-    $bib['edition'] = '';
-    $edition = self::prepare_marc_values($bib_info_marc['250'], array('a'));
-    $bib['edition'] = trim($edition[0]);
+		// Publication year
+		$bib[pub_year] = '';
+		$pub_year = self::prepare_marc_values($bib_info_marc['260'], array('c'));
+		$c_arr = explode(',', $pub_year[0]);
+		$c_key = count($c_arr) - 1;
+		$bib[pub_year] = substr(ereg_replace("[^0-9]", '', $c_arr[$c_key]), -4);
 
-    // Series information
-    $bib['series'] = '';
-    $series = self::prepare_marc_values($bib_info_marc['490'], array('a','v'));
-    if (!$series[0]) { $series = self::prepare_marc_values($bib_info_marc['440'], array('a','v')); }
-    if (!$series[0]) { $series = self::prepare_marc_values($bib_info_marc['400'], array('a','v')); }
-    if (!$series[0]) { $series = self::prepare_marc_values($bib_info_marc['410'], array('a','v')); }
-    if (!$series[0]) { $series = self::prepare_marc_values($bib_info_marc['730'], array('a','v')); }
-    if (!$series[0]) { $series = self::prepare_marc_values($bib_info_marc['800'], array('a','v')); }
-    if (!$series[0]) { $series = self::prepare_marc_values($bib_info_marc['810'], array('a','v')); }
-    if (!$series[0]) { $series = self::prepare_marc_values($bib_info_marc['830'], array('a','v')); }
-    $bib['series'] = $series[0];
+		// ISBN / Std. number
+		$bib[stdnum] = '';
+		$stdnum = self::prepare_marc_values($bib_info_marc['020'], array('a'));
+		$bib[stdnum] = $stdnum[0];
 
-    // Call number
-    $callnum = '';
-    $callnum_arr = self::prepare_marc_values($bib_info_marc['099'], array('a'));
-    if (is_array($callnum_arr) && count($callnum_arr)) {
-      foreach ($callnum_arr as $cn_sub) {
-        $callnum .= $cn_sub . ' ';
-      }
-    }
-    $bib['callnum'] = trim($callnum);
+		// UPC
+		$bib[upc] = '';
+		$upc = self::prepare_marc_values($bib_info_marc['024'], array('a'));
+		$bib[upc] = $upc[0];
+		if($bib[upc] == '')
+			$bib[upc] = "000000000000";
 
-    // Publication information
-    $bib['pub_info'] = '';
-    $pub_info = self::prepare_marc_values($bib_info_marc['260'], array('a','b','c'));
-    $bib['pub_info'] = $pub_info[0];
+		// Grab the cover image URL if we're doing that
+		$bib[cover_img] = '';
+		if ($skip_cover != TRUE) {
+			if ($bib[stdnum]) { $bib[cover_img] = locum_server::get_cover_img($bib[stdnum]); }
+		}
 
-    // Publication year
-    $bib['pub_year'] = '';
-    $pub_year = self::prepare_marc_values($bib_info_marc['260'], array('c'));
-    $c_arr = explode(',', $pub_year[0]);
-    $c_key = count($c_arr) - 1;
-    $bib['pub_year'] = substr(ereg_replace("[^0-9]", '', $c_arr[$c_key]), -4);
+		// LCCN
+		$bib[lccn] = '';
+		$lccn = self::prepare_marc_values($bib_info_marc['010'], array('a'));
+		$bib[lccn] = $lccn[0];
 
-    // ISBN / Std. number
-    $bib['stdnum'] = '';
-    $stdnum = self::prepare_marc_values($bib_info_marc['020'], array('a'));
-    $bib['stdnum'] = $stdnum[0];
+		// Description
+		$bib[descr] = '';
+		$descr = self::prepare_marc_values($bib_info_marc['300'], array('a','b','c'));
+		$bib[descr] = $descr[0];
 
-    // UPC
-    $bib['upc'] = '';
-    $upc = self::prepare_marc_values($bib_info_marc['024'], array('a'));
-    $bib['upc'] = $upc[0];
-    if($bib['upc'] == '') { $bib['upc'] = "000000000000"; }
+		// Notes
+		$notes = array();
+		$bib[notes] = '';
+		$notes_tags = array('500','505','511','520');
+		foreach ($notes_tags as $notes_tag) {
+			$notes_arr = self::prepare_marc_values($bib_info_marc[$notes_tag], array('a','t'));
+			if (is_array($notes_arr)) {
+				foreach ($notes_arr as $notes_arr_val) {
+					array_push($notes, $notes_arr_val);
+				}
+			}
+		}
+		if (count($notes)) { $bib[notes] = serialize($notes); }
 
-    // Grab the cover image URL if we're doing that
-    $bib['cover_img'] = '';
-    if ($skip_cover != TRUE) {
-      if ($bib['stdnum']) { $bib['cover_img'] = locum_server::get_cover_img($bib['stdnum']); }
-    }
+		// Subject headings
+		$subjects = array();
+		$subj_tags = array(
+			'600', '610', '611', '630', '650', '651',
+			'653', '654', '655', '656', '657', '658',
+			'690', '691', '692', '693', '694',
+			'696', '697', '698', '699'
+		);
+		foreach ($subj_tags as $subj_tag) {
+			$subj_arr = self::prepare_marc_values($bib_info_marc[$subj_tag], array('a','b','c','d','e','v','x','y','z'), ' -- ');
+			if (is_array($subj_arr)) {
+				foreach ($subj_arr as $subj_arr_val) {
+					array_push($subjects, $subj_arr_val);
+				}
+			}
+		}
+		$bib[subjects] = '';
+		if (count($subjects)) { $bib[subjects] = $subjects; }
 
-    // LCCN
-    $bib['lccn'] = '';
-    $lccn = self::prepare_marc_values($bib_info_marc['010'], array('a'));
-    $bib['lccn'] = $lccn[0];
+		unset($bib_info_marc);
+		return $bib;
 
-    // Download Link (if it's a downloadable)
-    $bib['download_link'] = '';
-    $dl_link = self::prepare_marc_values($bib_info_marc['856'], array('u'));
-    $bib['download_link'] = $dl_link[0];
-
-    // Description
-    $bib['descr'] = '';
-    $descr = self::prepare_marc_values($bib_info_marc['300'], array('a','b','c'));
-    $bib['descr'] = $descr[0];
-
-    // Notes
-    $notes = array();
-    $bib['notes'] = '';
-    $notes_tags = array('500','505','511','520');
-    foreach ($notes_tags as $notes_tag) {
-      $notes_arr = self::prepare_marc_values($bib_info_marc[$notes_tag], array('a'));
-      if (is_array($notes_arr)) {
-        foreach ($notes_arr as $notes_arr_val) {
-          array_push($notes, $notes_arr_val);
-        }
-      }
-    }
-    if (count($notes)) { $bib['notes'] = serialize($notes); }
-
-    // Subject headings
-    $subjects = array();
-    $subj_tags = array(
-      '600', '610', '611', '630', '650', '651',
-      '653', '654', '655', '656', '657', '658',
-      '690', '691', '692', '693', '694', '695',
-      '696', '697', '698', '699'
-    );
-    foreach ($subj_tags as $subj_tag) {
-      $subj_arr = self::prepare_marc_values($bib_info_marc[$subj_tag], array('a','b','c','d','e','v','x','y','z'), ' -- ');
-      if (is_array($subj_arr)) {
-        foreach ($subj_arr as $subj_arr_val) {
-          array_push($subjects, $subj_arr_val);
-        }
-      }
-    }
-    $bib['subjects'] = '';
-    if (count($subjects)) { $bib['subjects'] = $subjects; }
-
-    unset($bib_info_marc);
-    return $bib;
   }
 
   /**
