@@ -146,9 +146,9 @@ class locum_iii_2009 {
     // Additional Titles
     $bib[addl_title] = '';
     $addl_title = array();
-    $addltitle_tags = array('730','246','240');
+    $addltitle_tags = array('730','700','246','240');
 		foreach ($addltitle_tags as $addltitle_tag) {
-			$addltitle_arr = self::prepare_marc_values($bib_info_marc[$addltitle_tag], array('a'));
+			$addltitle_arr = self::prepare_marc_values($bib_info_marc[$addltitle_tag], array('a','t','p'));
 			if (is_array($addltitle_arr)) {
 				foreach ($addltitle_arr as $addltitle_arr_val) {
 					array_push($addl_title, $addltitle_arr_val);
