@@ -307,7 +307,7 @@ class locum_iii_2009 {
     $avail_page_raw = utf8_encode(file_get_contents($url));
 
     // Holdings Regex
-    $regex_h = '%field 1 -->&nbsp;(.*?)</td>(.*?)browse">(.*?)</a>(.*?)field \% -->&nbsp;(.*?)</td>%s';
+    $regex_h = '%field 1 -->&nbsp;(.*?)</td>(.*?)browse">(.*?)</td>(.*?)field \% -->&nbsp;(.*?)</td>%s';
     preg_match_all($regex_h, $avail_page_raw, $matches);
 
     foreach ($matches[1] as $i => $location) {
