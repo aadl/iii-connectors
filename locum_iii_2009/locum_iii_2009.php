@@ -92,17 +92,21 @@ class locum_iii_2009 {
           $bib['mat_code'] = trim($bil_obj->FIXVALUE);
           break;
         case 'BCODE3':
+          if (trim($bil_obj->FIXVALUE) == '') {
+            $bil_obj->FIXVALUE = "-";
+          }
           $bib['suppress'] = in_array(trim($bil_obj->FIXVALUE), locum::csv_parser($this->locum_config['ils_custom_config']['suppress_codes'])) ? 1 : 0;
           break;
 
       }
     }
-
+    if ($bib['bcode3'] == 'n' || $bib['bcode3'] == 'd' || $bib['bcode3'] == 'p'){
+      return FALSE;
+    }
     // Process MARC fields
-
     // Process Author information
     $bib['author'] = '';
-    $author_arr = self::prepare_marc_values($bib_info_marc['100'], array('a','b','c','d'));
+    $author_arr = self::prepare_marc_values($bib_info_marc['100'], array('a', 'b', 'c', 'd'));
     $bib['author'] = $author_arr[0];
 
     // In no author info, we'll go for the 110 field
@@ -113,7 +117,7 @@ class locum_iii_2009 {
 
     // Additional author information
     $bib['addl_author'] = '';
-    $addl_author = self::prepare_marc_values($bib_info_marc['700'], array('a','b','c','d'));
+    $addl_author = self::prepare_marc_values($bib_info_marc['700'], array('a', 'b', 'c', 'd'));
     if (is_array($addl_author)) {
       $bib['addl_author'] = serialize($addl_author);
     }
@@ -128,17 +132,47 @@ class locum_iii_2009 {
 
     // Title information
     $bib['title'] = '';
-    $title = self::prepare_marc_values($bib_info_marc['245'], array('a','b'));
-    if (substr($title[0], -1) == '/') { $title[0] = trim(substr($title[0], 0, -1)); }
+    $title = self::prepare_marc_values($bib_info_marc['245'], array('a', 'b'), " : ");
+    if (substr($title[0], -1) == '/') {
+      $title[0] = trim(substr($title[0], 0, -1));
+    }
     $bib['title'] = trim($title[0]);
 
-    // Title medium information
+    // Title subfield information (disc and season information)
     $bib['title_medium'] = '';
-    $title_medium = self::prepare_marc_values($bib_info_marc['245'], array('h'));
-    if ($title_medium[0]) {
-      if (preg_match('/\[(.*?)\]/', $title_medium[0], $medium_match)) {
-        $bib['title_medium'] = $medium_match[1];
+    //$title_medium = self::prepare_marc_values($bib_info_marc['245'], array('h'));
+    $volume = self::prepare_marc_values($bib_info_marc['245'], array('n'));
+    $disc = self::prepare_marc_values($bib_info_marc['245'], array('p'));
+    if (substr($disc[0], -1) == '/') {
+      $disc[0] = trim(substr($disc[0], 0, -1));
+    }
+    if (substr($volume[0], -1) == '/') {
+      $volume[0] = trim(substr($volume[0], 0, -1));
+    }
+    if ($volume[0] && $disc[0]) {
+      $bib['title_medium'] = $volume[0] . " " . $disc[0];
+    }
+    else if ($volume[0]) {
+      $bib['title_medium'] = $volume[0];
+    }
+    else {
+      $bib['title_medium'] = $disc[0];
+    }
+
+    // Additional Titles
+    $bib['addl_title'] = '';
+    $addl_title = array();
+    $addltitle_tags = array('730', '700', '246', '240');
+    foreach ($addltitle_tags as $addltitle_tag) {
+      $addltitle_arr = self::prepare_marc_values($bib_info_marc[$addltitle_tag], array('a', 't', 'p'));
+      if (is_array($addltitle_arr)) {
+        foreach ($addltitle_arr as $addltitle_arr_val) {
+          array_push($addl_title, $addltitle_arr_val);
+        }
       }
+    }
+    if (is_array($addl_title) && !empty($addltitle_arr)) {
+     $bib['addl_title'] = serialize($addl_title);
     }
 
     // Edition information
@@ -148,14 +182,28 @@ class locum_iii_2009 {
 
     // Series information
     $bib['series'] = '';
-    $series = self::prepare_marc_values($bib_info_marc['490'], array('a','v'));
-    if (!$series[0]) { $series = self::prepare_marc_values($bib_info_marc['440'], array('a','v')); }
-    if (!$series[0]) { $series = self::prepare_marc_values($bib_info_marc['400'], array('a','v')); }
-    if (!$series[0]) { $series = self::prepare_marc_values($bib_info_marc['410'], array('a','v')); }
-    if (!$series[0]) { $series = self::prepare_marc_values($bib_info_marc['730'], array('a','v')); }
-    if (!$series[0]) { $series = self::prepare_marc_values($bib_info_marc['800'], array('a','v')); }
-    if (!$series[0]) { $series = self::prepare_marc_values($bib_info_marc['810'], array('a','v')); }
-    if (!$series[0]) { $series = self::prepare_marc_values($bib_info_marc['830'], array('a','v')); }
+    $series = self::prepare_marc_values($bib_info_marc['490'], array('a', 'v'));
+    if (!$series[0]) {
+      $series = self::prepare_marc_values($bib_info_marc['440'], array('a', 'v'));
+    }
+    if (!$series[0]) {
+      $series = self::prepare_marc_values($bib_info_marc['400'], array('a', 'v'));
+    }
+    if (!$series[0]) {
+      $series = self::prepare_marc_values($bib_info_marc['410'], array('a', 'v'));
+    }
+    if (!$series[0]) {
+      $series = self::prepare_marc_values($bib_info_marc['730'], array('a', 'v'));
+    }
+    if (!$series[0]) {
+      $series = self::prepare_marc_values($bib_info_marc['800'], array('a', 'v'));
+    }
+    if (!$series[0]) {
+      $series = self::prepare_marc_values($bib_info_marc['810'], array('a', 'v'));
+    }
+    if (!$series[0]) {
+      $series = self::prepare_marc_values($bib_info_marc['830'], array('a', 'v'));
+    }
     $bib['series'] = $series[0];
 
     // Call number
@@ -167,10 +215,18 @@ class locum_iii_2009 {
       }
     }
     $bib['callnum'] = trim($callnum);
+    $shelving_arr = array('a', 'b', 'i', 'l', 'x');
+    if (in_array($bib['mat_code'], $shelving_arr)) {
+      $shelving = self::prepare_marc_values($bib_info_marc['130'], array('a'));
+      if ($shelving[0]) {
+        $shelving = explode(" ", $shelving[0]);
+      }
+      $bib['callnum'] .= " " . trim(preg_replace('/\W/', ' ', $shelving[0]));
+    }
 
     // Publication information
     $bib['pub_info'] = '';
-    $pub_info = self::prepare_marc_values($bib_info_marc['260'], array('a','b','c'));
+    $pub_info = self::prepare_marc_values($bib_info_marc['260'], array('a', 'b', 'c'));
     $bib['pub_info'] = $pub_info[0];
 
     // Publication year
@@ -189,12 +245,16 @@ class locum_iii_2009 {
     $bib['upc'] = '';
     $upc = self::prepare_marc_values($bib_info_marc['024'], array('a'));
     $bib['upc'] = $upc[0];
-    if($bib['upc'] == '') { $bib['upc'] = "000000000000"; }
+    if ($bib['upc'] == '') {
+      $bib['upc'] = "000000000000";
+    }
 
     // Grab the cover image URL if we're doing that
     $bib['cover_img'] = '';
     if ($skip_cover != TRUE) {
-      if ($bib['stdnum']) { $bib['cover_img'] = locum_server::get_cover_img($bib['stdnum']); }
+      if ($bib['stdnum']) {
+        $bib['cover_img'] = locum_server::get_cover_img($bib[stdnum]);
+      }
     }
 
     // LCCN
@@ -202,40 +262,37 @@ class locum_iii_2009 {
     $lccn = self::prepare_marc_values($bib_info_marc['010'], array('a'));
     $bib['lccn'] = $lccn[0];
 
-    // Download Link (if it's a downloadable)
-    $bib['download_link'] = '';
-    $dl_link = self::prepare_marc_values($bib_info_marc['856'], array('u'));
-    $bib['download_link'] = $dl_link[0];
-
     // Description
     $bib['descr'] = '';
-    $descr = self::prepare_marc_values($bib_info_marc['300'], array('a','b','c'));
+    $descr = self::prepare_marc_values($bib_info_marc['300'], array('a', 'b', 'c'));
     $bib['descr'] = $descr[0];
 
     // Notes
     $notes = array();
     $bib['notes'] = '';
-    $notes_tags = array('500','505','511','520');
+    $notes_tags = array('500', '505', '511', '520', '538');
     foreach ($notes_tags as $notes_tag) {
-      $notes_arr = self::prepare_marc_values($bib_info_marc[$notes_tag], array('a'));
+      $notes_arr = self::prepare_marc_values($bib_info_marc[$notes_tag], array('a', 't'), " -- ");
       if (is_array($notes_arr)) {
         foreach ($notes_arr as $notes_arr_val) {
           array_push($notes, $notes_arr_val);
         }
       }
     }
-    if (count($notes)) { $bib['notes'] = serialize($notes); }
+    if (count($notes)) {
+      $bib['notes'] = serialize($notes);
+    }
 
     // Subject headings
     $subjects = array();
     $subj_tags = array(
       '600', '610', '611', '630', '650', '651',
       '653', '654', '655', '656', '657', '658',
-      '690', '691', '692', '693', '694', '695',
+      '690', '691', '692', '693', '694',
       '696', '697', '698', '699'
     );
     foreach ($subj_tags as $subj_tag) {
-      $subj_arr = self::prepare_marc_values($bib_info_marc[$subj_tag], array('a','b','c','d','e','v','x','y','z'), ' -- ');
+      $subj_arr = self::prepare_marc_values($bib_info_marc[$subj_tag], array('a', 'b', 'c', 'd', 'e', 'v', 'x', 'y', 'z'), ' -- ');
       if (is_array($subj_arr)) {
         foreach ($subj_arr as $subj_arr_val) {
           array_push($subjects, $subj_arr_val);
@@ -243,7 +300,9 @@ class locum_iii_2009 {
       }
     }
     $bib['subjects'] = '';
-    if (count($subjects)) { $bib['subjects'] = $subjects; }
+    if (count($subjects)) {
+      $bib['subjects'] = $subjects;
+    }
 
     unset($bib_info_marc);
     return $bib;
@@ -665,19 +724,5 @@ class locum_iii_2009 {
     $iii_server_info['sslurl'] = 'https://' . $iii_server_info['server'] . ':' . $iii_server_info['sslport'];
     return $iii_server_info;
   }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 }

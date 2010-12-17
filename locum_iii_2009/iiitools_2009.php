@@ -281,7 +281,7 @@ class iiitools {
       }
       $item[$i]['title'] = trim(strip_tags($item_data['patFuncTitle']));
 
-      preg_match('%Renewed ([0-9]+) times%', $item_data['patFuncStatus'], $renew_match);
+      preg_match('%Renewed ([0-9]+) time%', $item_data['patFuncStatus'], $renew_match);
       if ($renew_match[1]) {
         $item[$i]['numrenews'] = $renew_match[1];
       }
