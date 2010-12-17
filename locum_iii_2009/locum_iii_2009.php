@@ -92,6 +92,7 @@ class locum_iii_2009 {
           $bib['mat_code'] = trim($bil_obj->FIXVALUE);
           break;
         case 'BCODE3':
+	  if(trim($bil_obj->FIXVALUE) == '') { $bil_obj->FIXVALUE = "-"; }
           $bib['suppress'] = in_array(trim($bil_obj->FIXVALUE), locum::csv_parser($this->locum_config['ils_custom_config']['suppress_codes'])) ? 1 : 0;
           break;
 
@@ -127,7 +128,7 @@ class locum_iii_2009 {
 
 		// Title information
 		$bib[title] = '';
-		$title = self::prepare_marc_values($bib_info_marc['245'], array('a','b'));
+		$title = self::prepare_marc_values($bib_info_marc['245'], array('a','b'), " : ");
 		if (substr($title[0], -1) == '/') { $title[0] = trim(substr($title[0], 0, -1)); }
 		$bib[title] = trim($title[0]);
 
@@ -145,9 +146,9 @@ class locum_iii_2009 {
     // Additional Titles
     $bib[addl_title] = '';
     $addl_title = array();
-    $addltitle_tags = array('730','246','240');
+    $addltitle_tags = array('730','700','246','240');
 		foreach ($addltitle_tags as $addltitle_tag) {
-			$addltitle_arr = self::prepare_marc_values($bib_info_marc[$addltitle_tag], array('a'));
+			$addltitle_arr = self::prepare_marc_values($bib_info_marc[$addltitle_tag], array('a','t','p'));
 			if (is_array($addltitle_arr)) {
 				foreach ($addltitle_arr as $addltitle_arr_val) {
 					array_push($addl_title, $addltitle_arr_val);
@@ -234,9 +235,9 @@ class locum_iii_2009 {
 		// Notes
 		$notes = array();
 		$bib[notes] = '';
-		$notes_tags = array('500','505','511','520');
+		$notes_tags = array('500','505','511','520','538');
 		foreach ($notes_tags as $notes_tag) {
-			$notes_arr = self::prepare_marc_values($bib_info_marc[$notes_tag], array('a','t'));
+			$notes_arr = self::prepare_marc_values($bib_info_marc[$notes_tag], array('a','t')," -- ");
 			if (is_array($notes_arr)) {
 				foreach ($notes_arr as $notes_arr_val) {
 					array_push($notes, $notes_arr_val);
