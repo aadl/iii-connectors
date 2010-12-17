@@ -286,30 +286,34 @@ class locum_iii_2009 {
     $url = $iii_server_info['nosslurl'] . '/search~S24/.b' . $bnum . '/.b' . $bnum . '/1,1,1,B/holdings~' . $bnum . '&FF=&1,0,';
     $avail_page_raw = utf8_encode(file_get_contents($url));
 
-    // Holdings Regex
-    $regex_h = '%field 1 -->&nbsp;(.*?)</td>(.*?)browse">(.*?)</a>(.*?)field \% -->&nbsp;(.*?)</td>%s';
-    preg_match_all($regex_h, $avail_page_raw, $matches);
+    $row_count = preg_match_all('%<tr.+?bibItemsEntry.+?>(.+?)</tr>%s', $avail_page_raw, $rowmatch);
+    for ($i = 0; $i < $row_count; $i++) {
+      // Grab all table cells in the Entry
+      $cellmatch = '';
+      preg_match_all('%<td.+?</td>%s', $rowmatch[1][$i], $cellmatch);
 
-    foreach ($matches[1] as $i => $location) {
-      // put the item details in the array
-      $location = trim($location);
-      $loc_code = $loc_codes_flipped[$location];
-      $call = str_replace("'", "&apos;", trim($matches[3][$i]));
-      $status = trim($matches[5][$i]);
-      $age = $default_age;
-      $branch = $default_branch;
+      // Strip td cells to plain text content
+      foreach($cellmatch[0] as &$celltext) {
+        $celltext = trim(str_replace('&nbsp;', ' ', strip_tags($celltext)));
+      }
 
-      if (in_array($status, $avail_token)) {
-        $avail = 1;
-        $due_date = 0;
+      $item = array();
+      $item['location'] = $cellmatch[0][0]; // First cell is location
+      $item['callnum'] = str_replace("'", "&apos;", $cellmatch[0][1]); // Second cell is call number
+      $item['statusmsg'] = $cellmatch[0][2]; // Third cell is status
+      $item['loc_code'] = $loc_codes_flipped[$item['location']];
+      $item['age'] = $default_age;
+      $item['branch'] = $default_branch;
+      $item['due'] = 0;
+
+      if (in_array($item['statusmsg'], $avail_token)) {
+        $item['avail'] = 1;
       } else {
-        $avail = 0;
-        if (preg_match('/DUE/i', $status)) {
-          $due_arr = explode(' ', trim($status));
+        $item['avail'] = 0;
+        if (preg_match('/DUE/i', $item['statusmsg'])) {
+          $due_arr = explode(' ', trim($item['statusmsg']));
           $due_date_arr = explode('-', $due_arr[1]);
-          $due_date = mktime(0, 0, 0, $due_date_arr[0], $due_date_arr[1], (2000 + (int) $due_date_arr[2]));
-        } else {
-          $due_date = 0;
+          $item['due'] = mktime(0, 0, 0, $due_date_arr[0], $due_date_arr[1], (2000 + (int) $due_date_arr[2]));
         }
       }
 
@@ -317,9 +321,13 @@ class locum_iii_2009 {
       if (count($this->locum_config['iii_record_ages'])) {
         foreach ($this->locum_config['iii_record_ages'] as $item_age => $match_crit) {
           if (preg_match('/^\//', $match_crit)) {
-            if (preg_match($match_crit, $loc_code)) { $age = $item_age; }
+            if (preg_match($match_crit, $item['loc_code'])) {
+              $item['age'] = $item_age;
+            }
           } else {
-            if (in_array($loc_code, locum::csv_parser($match_crit))) { $age = $item_age; }
+            if (in_array($item['loc_code'], locum::csv_parser($match_crit))) {
+              $item['age'] = $item_age;
+            }
           }
         }
       }
@@ -328,23 +336,18 @@ class locum_iii_2009 {
       if (count($this->locum_config['branch_assignments'])) {
         foreach ($this->locum_config['branch_assignments'] as $branch_code => $match_crit) {
           if (preg_match('/^\//', $match_crit)) {
-            if (preg_match($match_crit, $loc_code)) { $branch = $branch_code; }
+            if (preg_match($match_crit, $item['loc_code'])) {
+              $item['branch'] = $branch_code;
+            }
           } else {
-            if (in_array($loc_code, locum::csv_parser($match_crit))) { $branch = $branch_code; }
+            if (in_array($item['loc_code'], locum::csv_parser($match_crit))) {
+              $item['branch'] = $branch_code;
+            }
           }
         }
       }
 
-      $avail_array['items'][] = array(
-        'location' => $location,
-        'loc_code' => $loc_code,
-        'callnum' => $call,
-        'statusmsg' => $status,
-        'due' => $due_date,
-        'avail' => $avail,
-        'age' => $age,
-        'branch' => $branch,
-      );
+      $avail_array['items'][] = $item;
     }
 
     return $avail_array;
