@@ -581,6 +581,26 @@ class locum_iii_2009 {
     $payment_result = $iii->pay_fine($iii_payment_details);
     return $payment_result;
   }
+  
+  public function make_donation($donate_form_values) {
+    require_once('iiitools_2009.php');
+    $iii = new iiitools;
+    $iii->set_iiiserver($this->locum_config['ils_config']['ils_server']);
+    
+    $donate_vars['amount'] = $donate_form_values['amount'];
+    $donate_vars['name'] = $donate_form_values['name'];
+    $donate_vars['address1'] = $donate_form_values['address1'];
+    $donate_vars['city'] = $donate_form_values['city'];
+    $donate_vars['state'] = $donate_form_values['state'];
+    $donate_vars['zip'] = $donate_form_values['zip'];
+    $donate_vars['ccnum'] = $donate_form_values['ccnum'];
+    $donate_vars['ccexp_month'] = $donate_form_values['ccexp_month'];
+    $donate_vars['ccexp_year'] = $donate_form_values['ccexp_year'];
+    $donate_vars['cvv'] = $donate_form_values['cvv'];
+    
+    return $iii->donate($donate_vars);
+  }
+
 
   /**
    * This is an internal function used to parse MARC values.

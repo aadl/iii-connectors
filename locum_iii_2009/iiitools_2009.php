@@ -693,6 +693,53 @@ class iiitools {
   }
 
   /**
+   * Makes a donation with the passed information
+   *
+   * 'amount' => Donation Amount
+   * 'name' => Name (on Credit Card)
+   * 'address1' => Billing Address Street
+   * 'city' => Billing Address City
+   * 'state' => Billing Address State
+   * 'zip' => Billing Address Zip Code
+   * 'ccnum' => Credit Card Number
+   * 'ccexp_month' => Credit Card Expiration Month
+   * 'ccexp_year' => Credit Card Expiration Year
+   * 'cvv' => Credit Card Verification Number
+   */
+  public function donate($donate_vars) {
+    // Get session key
+    $donate_form = self::my_curl_exec("webapp/iii/ecom/donate.do", NULL, TRUE);
+    preg_match('%name="key" value="(.+?)"%s', $donate_form['body'], $keymatch);
+    $donate_vars['key'] = trim($keymatch[1]);
+
+    $postvars = "action=confirmInfo";
+    foreach ($donate_vars as $dkey => $dval) {
+      $postvars .= '&' . $dkey . '=' . urlencode($dval);
+    }
+    $donate_result = self::my_curl_exec("webapp/iii/ecom/validateDonate.do", $postvars);
+    
+    $postvars = 'action=submitData&key=' . $donate_vars['key'];
+    $donate_result = self::my_curl_exec("webapp/iii/ecom/submitDonate.do", $postvars);
+    
+    $result_arr['body'] = strip_tags($donate_result['body'], "<h2><br>");
+    $result_arr['body'] = str_replace("&nbsp;", '', $result_arr['body']);
+    $result_arr['body'] = str_replace("setTimeout('window.close()', 300000);", '', $result_arr['body']);
+    $result_arr['body'] = preg_replace('/\s\s+/', ' ', $result_arr['body']);
+    
+    if (preg_match('%Your payment has been approved%s', $donate_result['body'])) {
+      $result_arr['approved'] = 1;
+    } else {
+      $result_arr['approved'] = 0;
+      preg_match('%span class="errormessage"(.+?)div class="error">(.+?)<\/div>%s', $donate_result['body'], $err_match);
+      $result_arr['error'] = trim(strip_tags($err_match[2]));
+      preg_match('%span class="msg"(.+?)div class="error">(.+?)<\/div>%s', $donate_result['body'], $msg_match);
+      $result_arr['reason'] = trim(strip_tags($msg_match[2]));      
+    }
+
+    return $result_arr;
+  }
+
+  /**
    * Converts MM-DD-YY to unix timestamp
    *
    * @param string $date_orig Original date in MM-DD-YY format
