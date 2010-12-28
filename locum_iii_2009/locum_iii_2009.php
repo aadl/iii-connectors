@@ -593,6 +593,7 @@ class locum_iii_2009 {
     $donate_vars['city'] = $donate_form_values['city'];
     $donate_vars['state'] = $donate_form_values['state'];
     $donate_vars['zip'] = $donate_form_values['zip'];
+    $donate_vars['email'] = $donate_form_values['emailaddr'];
     $donate_vars['ccnum'] = $donate_form_values['ccnum'];
     $donate_vars['ccexp_month'] = $donate_form_values['ccexp_month'];
     $donate_vars['ccexp_year'] = $donate_form_values['ccexp_year'];
