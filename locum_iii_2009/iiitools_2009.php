@@ -720,7 +720,7 @@ class iiitools {
     
     $postvars = 'action=submitData&key=' . $donate_vars['key'];
     $donate_result = self::my_curl_exec("webapp/iii/ecom/submitDonate.do", $postvars);
-    
+
     $result_arr['body'] = strip_tags($donate_result['body'], "<h2><br>");
     $result_arr['body'] = str_replace("&nbsp;", '', $result_arr['body']);
     $result_arr['body'] = str_replace("setTimeout('window.close()', 300000);", '', $result_arr['body']);

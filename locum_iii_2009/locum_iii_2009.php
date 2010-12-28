@@ -585,7 +585,7 @@ class locum_iii_2009 {
   public function make_donation($donate_form_values) {
     require_once('iiitools_2009.php');
     $iii = new iiitools;
-    $iii->set_iiiserver($this->locum_config['ils_config']['ils_server']);
+    $iii->set_iiiserver(self::iii_server_info());
     
     $donate_vars['amount'] = $donate_form_values['amount'];
     $donate_vars['name'] = $donate_form_values['name'];
