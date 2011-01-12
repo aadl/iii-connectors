@@ -254,7 +254,7 @@ class iiitools {
    * @return array An array of items checked out.
    */
   public function parse_patron_items($itemlist_raw) {
-        // Grab all patFuncEntry rows
+    // Grab all patFuncEntry rows
     $row_count = preg_match_all('%<tr.+?patFuncEntry.+?>(.+?)</tr>%s', $itemlist_raw, $rowmatch);
     for ($i = 0; $i < $row_count; $i++) {
 
@@ -392,15 +392,20 @@ class iiitools {
     if (preg_match('/<font color="red" size="(.+?)">(.+?)<\/font>/is', $result['body'], $error_match)) {
       $result['error'] = trim($error_match[2]);
     }
-    if (preg_match('/Choose one item from the list below/is', $result['body'])) {
-      preg_match_all('/<tr  class="bibItemsEntry">(.+?)<\/td>(.+?)<!-- field 1 -->&nbsp; (.+?)<\/td>(.+?)<!-- field C -->&nbsp;(.+?)&nbsp; <!-- field v -->(.*?)&nbsp;(.+?)field \% -->&nbsp;(.+?)</is', $result['body'], $items_match_raw);
-      $num_items = count($items_match_raw[0]);
-      for ($i = 0; $i < $num_items; $i++) {
-        preg_match('/value="(.+?)"/is', $items_match_raw[1][$i], $inum_match);
-        $result['selection'][$i]['varname'] = trim($inum_match[1]);
-        $result['selection'][$i]['location'] = trim($items_match_raw[3][$i]);
-        $result['selection'][$i]['callnum'] = trim($items_match_raw[5][$i]) . ' ' . trim($items_match_raw[6][$i]);
-        $result['selection'][$i]['status'] = trim($items_match_raw[8][$i]);
+    if (strpos($result['body'], 'Choose one item from the list below') !== FALSE) {
+      $row_count = preg_match_all('%<tr.+?bibItemsEntry.+?>(.+?)</tr>%s', $result['body'], $rowmatch);
+      for ($i = 0; $i < $row_count; $i++) {
+        // Grab all table cells in the Entry
+        $cellmatch = '';
+        $item_data = array();
+        $cell_count = preg_match_all('%<td[^>]+>(.+?)</td>%s', $rowmatch[1][$i], $cellmatch);
+        if ($cell_count == 4) { // Item selection table should always have 4 cells
+          preg_match('/value="(.+?)"/is', $cellmatch[1][0], $inum_match); // first cell is radio with itemnum
+          $result['selection'][$i]['varname'] = trim($inum_match[1]);
+          $result['selection'][$i]['location'] = trim(str_replace('&nbsp;', ' ', strip_tags($cellmatch[1][1])));
+          $result['selection'][$i]['callnum'] = trim(str_replace('&nbsp;', ' ', strip_tags($cellmatch[1][2])));
+          $result['selection'][$i]['status'] = trim(str_replace('&nbsp;', ' ', strip_tags($cellmatch[1][3])));
+        }
       }
     }
     // handle if user needs to select a location to pickup item
@@ -717,7 +722,7 @@ class iiitools {
       $postvars .= '&' . $dkey . '=' . urlencode($dval);
     }
     $donate_result = self::my_curl_exec("webapp/iii/ecom/validateDonate.do", $postvars);
-    
+
     $postvars = 'action=submitData&key=' . $donate_vars['key'];
     $donate_result = self::my_curl_exec("webapp/iii/ecom/submitDonate.do", $postvars);
 
@@ -725,7 +730,7 @@ class iiitools {
     $result_arr['body'] = str_replace("&nbsp;", '', $result_arr['body']);
     $result_arr['body'] = str_replace("setTimeout('window.close()', 300000);", '', $result_arr['body']);
     $result_arr['body'] = preg_replace('/\s\s+/', ' ', $result_arr['body']);
-    
+
     if (preg_match('%Your payment has been approved%s', $donate_result['body'])) {
       $result_arr['approved'] = 1;
     } else {
@@ -733,7 +738,7 @@ class iiitools {
       preg_match('%span class="errormessage"(.+?)div class="error">(.+?)<\/div>%s', $donate_result['body'], $err_match);
       $result_arr['error'] = trim(strip_tags($err_match[2]));
       preg_match('%span class="msg"(.+?)div class="error">(.+?)<\/div>%s', $donate_result['body'], $msg_match);
-      $result_arr['reason'] = trim(strip_tags($msg_match[2]));      
+      $result_arr['reason'] = trim(strip_tags($msg_match[2]));
     }
 
     return $result_arr;
