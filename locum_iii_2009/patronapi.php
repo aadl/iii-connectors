@@ -1,4 +1,4 @@
-<?
+<?php
 /**
  * Locum is a software library that abstracts ILS functionality into a
  * catalog discovery layer for use with such things as bolt-on OPACs like
