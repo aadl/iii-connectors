@@ -100,6 +100,7 @@ class locum_iii_2009 {
 
       }
     }
+    // Suppression codes but in 2009 the record is actually not returned
     if ($bib['bcode3'] == 'n' || $bib['bcode3'] == 'd' || $bib['bcode3'] == 'p'){
       return FALSE;
     }
@@ -114,22 +115,24 @@ class locum_iii_2009 {
       $author_110 = self::prepare_marc_values($bib_info_marc['110'], array('a'));
       $bib['author'] = $author_110[0];
     }
-
+    $author880 = self::prepare_marc_880($bib_info_marc['880'],'100');
+    if(is_array($author880)) {
+      $bib['non_romanized_author'] = trim($author880[0]," =,");
+    }
     // Additional author information
-    $bib['addl_author'] = '';
+    $bib['addl_author'] = array();
     $addl_author = self::prepare_marc_values($bib_info_marc['700'], array('a', 'b', 'c', 'd'));
     if (is_array($addl_author)) {
-      $bib['addl_author'] = serialize($addl_author);
+      $bib['addl_author'] = array_merge($bib['addl_author'],$addl_author);
     }
-
-    // In no additional author info, we'll go for the 710 field
-    if (!$bib['addl_author']) {
-      $author_710 = self::prepare_marc_values($bib_info_marc['710'], array('a'));
+    $author_710 = self::prepare_marc_values($bib_info_marc['710'], array('a'));
       if (is_array($author_710)) {
-        $bib['addl_author'] = serialize($author_710);
-      }
+        $bib['addl_author'] = array_merge($bib['addl_author'],$author_710);
     }
-
+    $addauthor880 = self::prepare_marc_880($bib_info_marc['880'],'700');
+    if(is_array($addauthor880)) {
+      $bib['addl_author'] = array_merge($bib['addl_author'],$addauthor880);
+    }
     // Title information
     $bib['title'] = '';
     $title = self::prepare_marc_values($bib_info_marc['245'], array('a', 'b'), " : ");
@@ -162,7 +165,7 @@ class locum_iii_2009 {
     // Additional Titles
     $bib['addl_title'] = '';
     $addl_title = array();
-    $addltitle_tags = array('730', '700', '246', '240');
+    $addltitle_tags = array('730', '740', '246', '240');
     foreach ($addltitle_tags as $addltitle_tag) {
       $addltitle_arr = self::prepare_marc_values($bib_info_marc[$addltitle_tag], array('a', 't', 'p'));
       if (is_array($addltitle_arr)) {
@@ -171,10 +174,17 @@ class locum_iii_2009 {
         }
       }
     }
-    if (is_array($addl_title) && !empty($addltitle_arr)) {
-     $bib['addl_title'] = serialize($addl_title);
+
+    if (is_array($addl_title)) {
+     $bib['addl_title'] = $addl_title;
     }
 
+    // Non Romanized Titles
+    $titles880 = self::prepare_marc_880($bib_info_marc['880'],'245');
+    if(!$titles880[0]){
+      $titles880 = self::prepare_marc_880($bib_info_marc['880'],'246');
+    }
+    $bib['non_romanized_title'] = trim($titles880[0]," =,");
     // Edition information
     $bib['edition'] = '';
     $edition = self::prepare_marc_values($bib_info_marc['250'], array('a'));
@@ -244,7 +254,7 @@ class locum_iii_2009 {
     // UPC
     $bib['upc'] = '';
     $upc = self::prepare_marc_values($bib_info_marc['024'], array('a'));
-    $bib['upc'] = $upc[0];
+    $bib['upc'] = $upc;
     if ($bib['upc'] == '') {
       $bib['upc'] = "000000000000";
     }
@@ -280,7 +290,7 @@ class locum_iii_2009 {
       }
     }
     if (count($notes)) {
-      $bib['notes'] = serialize($notes);
+      $bib['notes'] = $notes;
     }
 
     // Subject headings
@@ -613,7 +623,7 @@ class locum_iii_2009 {
    * @return array An array of processed MARC values
    */
   public function prepare_marc_values($value_arr, $subfields, $delimiter = ' ') {
-
+    
     // Repeatable values can be returned as an array or a serialized value
     foreach ($subfields as $subfield) {
       if (is_array($value_arr[$subfield])) {
@@ -657,6 +667,23 @@ class locum_iii_2009 {
     if (is_array($marc_values)) {
       foreach ($marc_values as $mv) {
         $result[] = $mv;
+      }
+    }
+    return $result;
+  }
+  
+  public function prepare_marc_880($value_arr, $reference) {
+    foreach($value_arr[6] as $key => $value) {
+      if(strstr($value[0],$reference)){
+        $sv_tmp = trim($value_arr['a'][$key][0]);
+        $matches = array();
+        preg_match_all('/\{u[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]\}/', $sv_tmp, $matches);
+        foreach ($matches[0] as $match_string) {
+          $code = hexdec($match_string);
+          $character = html_entity_decode("&#$code;", ENT_NOQUOTES, 'UTF-8');
+          $sv_tmp = str_replace($match_string, $character, $sv_tmp);
+        }
+        $result[] = $sv_tmp;
       }
     }
     return $result;
