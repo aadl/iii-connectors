@@ -192,29 +192,22 @@ class locum_iii_2009 {
 
     // Series information
     $bib['series'] = '';
-    $series = self::prepare_marc_values($bib_info_marc['490'], array('a', 'v'));
-    if (!$series[0]) {
-      $series = self::prepare_marc_values($bib_info_marc['440'], array('a', 'v'));
+    $series = array();
+    $series_tags = array('490','440','400','410','730','800','810','830');
+    foreach ($series_tags as $series_tag) {
+      $series_arr = self::prepare_marc_values($bib_info_marc[$series_tag], array('a', 'v'));
+      if (is_array($series_arr)) {
+        foreach ($series_arr as $series_arr_val) {
+          if ($split_pos = max(strpos($series_arr_val, ";"), strpos($series_arr_val, ":"), strpos($series_arr_val, "."), 0)) {
+            $series_arr_val = trim(substr($series_arr_val, 0, $split_pos));
+          }
+          array_push($series, $series_arr_val);
+        }
+      }
     }
-    if (!$series[0]) {
-      $series = self::prepare_marc_values($bib_info_marc['400'], array('a', 'v'));
+    if (count($series)) {
+      $bib['series'] = $series;
     }
-    if (!$series[0]) {
-      $series = self::prepare_marc_values($bib_info_marc['410'], array('a', 'v'));
-    }
-    if (!$series[0]) {
-      $series = self::prepare_marc_values($bib_info_marc['730'], array('a', 'v'));
-    }
-    if (!$series[0]) {
-      $series = self::prepare_marc_values($bib_info_marc['800'], array('a', 'v'));
-    }
-    if (!$series[0]) {
-      $series = self::prepare_marc_values($bib_info_marc['810'], array('a', 'v'));
-    }
-    if (!$series[0]) {
-      $series = self::prepare_marc_values($bib_info_marc['830'], array('a', 'v'));
-    }
-    $bib['series'] = $series[0];
 
     // Call number
     $callnum = '';
@@ -673,6 +666,7 @@ class locum_iii_2009 {
   }
   
   public function prepare_marc_880($value_arr, $reference) {
+    if(is_array($value_arr[6])){
     foreach($value_arr[6] as $key => $value) {
       if(strstr($value[0],$reference)){
         $sv_tmp = trim($value_arr['a'][$key][0]);
@@ -687,6 +681,7 @@ class locum_iii_2009 {
       }
     }
     return $result;
+    }
   }
 
   /**
