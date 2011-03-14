@@ -317,34 +317,46 @@ class locum_iii_2009 {
    * @param string $bnum Bib number to query
    * @return array Returns a Locum-ready availability array
    */
-  public function item_status($bnum) {
+  public function item_status($bnum,$skiporder = NULL) {
     $iii_server_info = self::iii_server_info();
     $avail_token = locum::csv_parser($this->locum_config['iii_custom_config']['iii_available_token']);
     $default_age = $this->locum_config['iii_custom_config']['default_age'];
     $default_branch = $this->locum_config['iii_custom_config']['default_branch'];
     $loc_codes_flipped = array_flip($this->locum_config['iii_location_codes']);
     $bnum = trim($bnum);
-
-    // Grab Hold Numbers
-    $url = $iii_server_info['nosslurl'] . '/search~S24/.b' . $bnum . '/.b' . $bnum . '/1,1,1,B/marc~' . $bnum . '&FF=&1,0,';
-    $hold_page_raw = utf8_encode(file_get_contents($url));
-
-    // Reserves Regex
-    $regex_r = '/(?P<hold_num>\d+) hold/';
-    preg_match($regex_r, $hold_page_raw, $match_r);
-    $avail_array['holds'] = $match_r['hold_num'] ? $match_r['hold_num'] : 0;
-
-    // Order Entry Regex
-    $avail_array['on_order'] = 0;
-    $regex_o = '%bibOrderEntry(.*?)td(.*?)>(.*?)<%s';
-    preg_match_all($regex_o, $hold_page_raw, $match_o);
-    foreach($match_o[3] as $order) {
-      $order_txt = trim($order);
-      preg_match('%^(.*?)cop%s', $order_txt, $order_count);
-      $avail_array['on_order'] = $avail_array['on_order'] + (int) trim($order_count[1]);
-      $avail_array['orders'][] = $order_txt;
+    if($skiporder){
+      $holds = 0;
+      $xmlopacurl = $iii_server_info['nosslurl'].'/xmlopac/.b' . $bnum . '?noexclude=WXROOT.Heading.Title.IIIRECORD';
+      $record = simplexml_load_file($xmlopacurl);
+      $labels = $record->xpath('//LABEL');
+      foreach($labels as $label){
+        if($label[0] == 'Hold') {
+          $holds++;
+        }
+      }
+      $avail_array['holds'] = $holds;
     }
-
+    else {
+      // Grab Hold Numbers
+      $url = $iii_server_info['nosslurl'] . '/search~S24/.b' . $bnum . '/.b' . $bnum . '/1,1,1,B/marc~' . $bnum . '&FF=&1,0,';
+      $hold_page_raw = utf8_encode(file_get_contents($url));
+  
+      // Reserves Regex
+      $regex_r = '/(?P<hold_num>\d+) hold/';
+      preg_match($regex_r, $hold_page_raw, $match_r);
+      $avail_array['holds'] = $match_r['hold_num'] ? $match_r['hold_num'] : 0;
+  
+      // Order Entry Regex
+      $avail_array['on_order'] = 0;
+      $regex_o = '%bibOrderEntry(.*?)td(.*?)>(.*?)<%s';
+      preg_match_all($regex_o, $hold_page_raw, $match_o);
+      foreach($match_o[3] as $order) {
+        $order_txt = trim($order);
+        preg_match('%^(.*?)cop%s', $order_txt, $order_count);
+        $avail_array['on_order'] = $avail_array['on_order'] + (int) trim($order_count[1]);
+        $avail_array['orders'][] = $order_txt;
+      }
+    }
     $url = $iii_server_info['nosslurl'] . '/search~S24/.b' . $bnum . '/.b' . $bnum . '/1,1,1,B/holdings~' . $bnum . '&FF=&1,0,';
     $avail_page_raw = utf8_encode(file_get_contents($url));
 
