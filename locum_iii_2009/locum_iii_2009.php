@@ -317,20 +317,20 @@ class locum_iii_2009 {
    * @param string $bnum Bib number to query
    * @return array Returns a Locum-ready availability array
    */
-  public function item_status($bnum,$skiporder = NULL) {
+  public function item_status($bnum, $skiporder = NULL) {
     $iii_server_info = self::iii_server_info();
     $avail_token = locum::csv_parser($this->locum_config['iii_custom_config']['iii_available_token']);
     $default_age = $this->locum_config['iii_custom_config']['default_age'];
     $default_branch = $this->locum_config['iii_custom_config']['default_branch'];
     $loc_codes_flipped = array_flip($this->locum_config['iii_location_codes']);
     $bnum = trim($bnum);
-    if($skiporder){
+    if ($skiporder) {
       $holds = 0;
-      $xmlopacurl = $iii_server_info['nosslurl'].'/xmlopac/.b' . $bnum . '?noexclude=WXROOT.Heading.Title.IIIRECORD';
+      $xmlopacurl = $iii_server_info['nosslurl'] . '/xmlopac/.b' . $bnum . '?noexclude=WXROOT.Heading.Title.IIIRECORD';
       $record = simplexml_load_file($xmlopacurl);
       $labels = $record->xpath('//LABEL');
-      foreach($labels as $label){
-        if($label[0] == 'Hold') {
+      foreach($labels as $label) {
+        if ($label[0] == 'Hold') {
           $holds++;
         }
       }
@@ -340,12 +340,12 @@ class locum_iii_2009 {
       // Grab Hold Numbers
       $url = $iii_server_info['nosslurl'] . '/search~S24/.b' . $bnum . '/.b' . $bnum . '/1,1,1,B/marc~' . $bnum . '&FF=&1,0,';
       $hold_page_raw = utf8_encode(file_get_contents($url));
-  
+
       // Reserves Regex
       $regex_r = '/(?P<hold_num>\d+) hold/';
       preg_match($regex_r, $hold_page_raw, $match_r);
       $avail_array['holds'] = $match_r['hold_num'] ? $match_r['hold_num'] : 0;
-  
+
       // Order Entry Regex
       $avail_array['on_order'] = 0;
       $regex_o = '%bibOrderEntry(.*?)td(.*?)>(.*?)<%s';
@@ -596,12 +596,12 @@ class locum_iii_2009 {
     $payment_result = $iii->pay_fine($iii_payment_details);
     return $payment_result;
   }
-  
+
   public function make_donation($donate_form_values) {
     require_once('iiitools_2009.php');
     $iii = new iiitools;
     $iii->set_iiiserver(self::iii_server_info());
-    
+
     $donate_vars['amount'] = $donate_form_values['amount'];
     $donate_vars['name'] = $donate_form_values['name'];
     $donate_vars['address1'] = $donate_form_values['address1'];
@@ -613,7 +613,7 @@ class locum_iii_2009 {
     $donate_vars['ccexp_month'] = $donate_form_values['ccexp_month'];
     $donate_vars['ccexp_year'] = $donate_form_values['ccexp_year'];
     $donate_vars['cvv'] = $donate_form_values['cvv'];
-    
+
     return $iii->donate($donate_vars);
   }
 
@@ -628,7 +628,7 @@ class locum_iii_2009 {
    * @return array An array of processed MARC values
    */
   public function prepare_marc_values($value_arr, $subfields, $delimiter = ' ') {
-    
+
     // Repeatable values can be returned as an array or a serialized value
     foreach ($subfields as $subfield) {
       if (is_array($value_arr[$subfield])) {
@@ -676,7 +676,7 @@ class locum_iii_2009 {
     }
     return $result;
   }
-  
+
   public function prepare_marc_880($value_arr, $reference) {
     if(is_array($value_arr[6])){
     foreach($value_arr[6] as $key => $value) {
