@@ -226,7 +226,17 @@ class locum_iii_2009 {
       }
       $bib['callnum'] .= " " . trim(preg_replace('/\W/', ' ', $shelving[0]));
     }
-
+    if (count($this->locum_config['genres'])) {
+      $matcodes = array_flip($this->locum_config['formats']);
+      if($bib['mat_code'] == $matcodes["CD"]){
+        $genres = array_flip($this->locum_config['genres']);
+        foreach($genres as $genre => $crc){
+          if(stristr($bib['callnum'],$genre)){
+            $bib['genres'][] = $genre;
+          }
+        }
+      }
+    }
     // Publication information
     $bib['pub_info'] = '';
     $pub_info = self::prepare_marc_values($bib_info_marc['260'], array('a', 'b', 'c'));
@@ -242,15 +252,12 @@ class locum_iii_2009 {
     // ISBN / Std. number
     $bib['stdnum'] = '';
     $stdnum = self::prepare_marc_values($bib_info_marc['020'], array('a'));
-    $bib['stdnum'] = $stdnum[0];
+    $bib['stdnum'] = $stdnum;
 
     // UPC
     $bib['upc'] = '';
     $upc = self::prepare_marc_values($bib_info_marc['024'], array('a'));
     $bib['upc'] = $upc;
-    if ($bib['upc'] == '') {
-      $bib['upc'] = "000000000000";
-    }
 
     // Grab the cover image URL if we're doing that
     $bib['cover_img'] = '';
