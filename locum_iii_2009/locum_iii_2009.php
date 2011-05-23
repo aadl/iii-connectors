@@ -193,7 +193,7 @@ class locum_iii_2009 {
     // Series information
     $bib['series'] = '';
     $series = array();
-    $series_tags = array('490','440','400','410','730','800','810','830');
+    $series_tags = array('490','440','400','410','730');
     foreach ($series_tags as $series_tag) {
       $series_arr = self::prepare_marc_values($bib_info_marc[$series_tag], array('a', 'v'));
       if (is_array($series_arr)) {
