@@ -198,7 +198,7 @@ class locum_iii_2009 {
       $series_arr = self::prepare_marc_values($bib_info_marc[$series_tag], array('a', 'v'));
       if (is_array($series_arr)) {
         foreach ($series_arr as $series_arr_val) {
-          if ($split_pos = max(strpos($series_arr_val, ";"), strpos($series_arr_val, ":"), strpos($series_arr_val, "."), 0)) {
+          if ($split_pos = max(strpos($series_arr_val, ";"), strpos($series_arr_val, ":"), 0)) {
             $series_arr_val = trim(substr($series_arr_val, 0, $split_pos));
           }
           array_push($series, $series_arr_val);
