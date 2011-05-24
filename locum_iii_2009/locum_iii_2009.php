@@ -139,7 +139,8 @@ class locum_iii_2009 {
     if (substr($title[0], -1) == '/') {
       $title[0] = trim(substr($title[0], 0, -1));
     }
-    $bib['title'] = trim($title[0]);
+    $strip_chars = array('[',']');
+    $bib['title'] =  str_ireplace($strip_chars,'',trim($title[0]));
 
     // Title subfield information (disc and season information)
     $bib['title_medium'] = '';
@@ -292,7 +293,10 @@ class locum_iii_2009 {
     if (count($notes)) {
       $bib['notes'] = $notes;
     }
-
+    $notes880 = self::prepare_marc_880($bib_info_marc['880'],'505');
+    if(is_array($notes880)) {
+      $bib['non_romanized_notes'] = trim($notes880[0]," =,");
+    }
     // Subject headings
     $subjects = array();
     $subj_tags = array(
@@ -644,6 +648,7 @@ class locum_iii_2009 {
 
           if (is_array($subvalue)) {
             foreach ($subvalue as $sub_subvalue) {
+              $sub_subvalue = trim($sub_subvalue,trim($delimiter));
               if ($i[$subkey]) { $pad[$subkey] = $delimiter; }
               $sv_tmp = trim($sub_subvalue);
               $matches = array();
@@ -657,6 +662,7 @@ class locum_iii_2009 {
               $i[$subkey] = 1;
             }
           } else {
+            $subvalue = trim($subvalue,trim($delimiter));
             if ($i[$subkey]) { $pad[$subkey] = $delimiter; }
 
             // Process unicode for diacritics
