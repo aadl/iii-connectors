@@ -248,7 +248,11 @@ class locum_iii_2009 {
     $pub_year = self::prepare_marc_values($bib_info_marc['260'], array('c'));
     $c_arr = explode(',', $pub_year[0]);
     $c_key = count($c_arr) - 1;
-    $bib['pub_year'] = substr(ereg_replace("[^0-9]", '', $c_arr[$c_key]), -4);
+    $cyear = explode('-',$c_arr[$c_key]);
+    $bib['pub_year'] = substr(ereg_replace("[^0-9]", '', $cyear[0]), -4);
+    if(strlen($bib['pub_year']) != 4){
+      $bib['pub_year'] = '';
+    }
 
     // ISBN / Std. number
     $bib['stdnum'] = '';
@@ -317,8 +321,8 @@ class locum_iii_2009 {
     if (count($subjects)) {
       $bib['subjects'] = $subjects;
     }
-
     unset($bib_info_marc);
+
     return $bib;
   }
 
