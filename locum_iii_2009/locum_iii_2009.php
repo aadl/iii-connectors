@@ -343,6 +343,7 @@ class locum_iii_2009 {
       $holds = 0;
       $xmlopacurl = $iii_server_info['nosslurl'] . '/xmlopac/.b' . $bnum . '?noexclude=WXROOT.Heading.Title.IIIRECORD';
       $record = simplexml_load_file($xmlopacurl);
+      if(!$record){ return FALSE; }
       $labels = $record->xpath('//LABEL');
       foreach($labels as $label) {
         if ($label[0] == 'Hold') {
