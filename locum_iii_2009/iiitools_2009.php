@@ -629,15 +629,15 @@ class iiitools {
   * @return array of fine details
   */
   function parse_patron_fines($body) {
-    $regex = '%type="checkbox" name="selectedFees" value="(.+?)"(.+?)>(.+?)\$(.+?)<%s';
+    $regex = '%type="checkbox" name="selectedFees" value="([0-9]+)".+?>(.+?)\$([0-9\.]+) <%s';
     $fines = array();
     preg_match('%name="key" value="(.+?)"%s', $body, $keymatch);
     $fines['sessionkey'] = trim($keymatch[1]);
     $count = preg_match_all($regex, $body, $rawmatch);
     for ($i=0; $i < $count; $i++) {
       $fines['items'][$i]['varname'] = trim($rawmatch[1][$i]);
-      $fines['items'][$i]['desc'] = trim($rawmatch[3][$i]);
-      $fines['items'][$i]['amount'] = (float) trim($rawmatch[4][$i]);
+      $fines['items'][$i]['desc'] = trim($rawmatch[2][$i]);
+      $fines['items'][$i]['amount'] = (float) trim($rawmatch[3][$i]);
     }
     return $fines;
   }
