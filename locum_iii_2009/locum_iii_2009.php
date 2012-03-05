@@ -119,6 +119,7 @@ class locum_iii_2009 {
     if(is_array($author880)) {
       $bib['non_romanized_author'] = trim($author880[0]," =,");
     }
+
     // Additional author information
     $bib['addl_author'] = array();
     $addl_author = self::prepare_marc_values($bib_info_marc['700'], array('a', 'b', 'c', 'd'));
@@ -133,6 +134,9 @@ class locum_iii_2009 {
     if(is_array($addauthor880)) {
       $bib['addl_author'] = array_merge($bib['addl_author'],$addauthor880);
     }
+    // Dedupe authors
+    $bib['addl_author'] = array_unique($bib['addl_author']);
+
     // Title information
     $bib['title'] = '';
     $title = self::prepare_marc_values($bib_info_marc['245'], array('a', 'b'), " : ");
