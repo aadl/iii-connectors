@@ -290,7 +290,6 @@ class locum_iii_2009 {
     $notes = array();
     $bib['notes'] = '';
     $notes_tags = array('500', '505', '511', '520', '538');
-    $contents = self::prepare_marc_values($bib_info_marc['700'],array('t'), " -- ");
     foreach ($notes_tags as $notes_tag) {
       $notes_arr = self::prepare_marc_values($bib_info_marc[$notes_tag], array('a', 't'), " -- ");
       if (is_array($notes_arr)) {
@@ -299,8 +298,9 @@ class locum_iii_2009 {
         }
       }
     }
+    $contents = self::prepare_marc_values($bib_info_marc['700'],array('t'), " -- ");
     if(count($contents)) {
-      $notes = array_merge($notes,$contents);
+      $notes[] = 'Contents: ' . implode(' -- ', $contents);
     }
     if (count($notes)) {
       $bib['notes'] = $notes;
