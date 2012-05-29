@@ -366,9 +366,9 @@ class locum_iii_2009 {
       $hold_page_raw = utf8_encode(file_get_contents($url));
 
       // Reserves Regex
-      $regex_r = '/(?P<hold_num>\d+) hold/';
+      $regex_r = '/<tr.+?bibHolds.+?([\d]+) hold.+?<\/tr>/s';
       preg_match($regex_r, $hold_page_raw, $match_r);
-      $avail_array['holds'] = $match_r['hold_num'] ? $match_r['hold_num'] : 0;
+      $avail_array['holds'] = $match_r[1] ? $match_r[1] : 0;
 
       // Order Entry Regex
       $avail_array['on_order'] = 0;
