@@ -140,7 +140,7 @@ class iiitools {
     if (!isset($this->patroninfo)) { exit('Patron Info not yet initialized'); }
     if (!$this->pin) { exit('PIN not yet set'); }
     $form_url = "patroninfo~S24/";
-  $this->my_curl_exec($form_url, NULL, NULL, NULL, TRUE, TRUE, TRUE);
+    $this->my_curl_exec($form_url, NULL, NULL, NULL, TRUE, TRUE, TRUE);
     $postvars = 'name=' . $this->patroninfo['PATRNNAME'] . '&code=' . $this->cardnum . '&pin=' . $this->pin;
     return self::my_curl_exec($form_url, $postvars, NULL, NULL, TRUE);
     return TRUE;
@@ -152,6 +152,23 @@ class iiitools {
   public function catalog_logout() {
     $url = "logout/";
     return self::my_curl_exec($form_url);
+  }
+
+  /**
+   * Set Patron Email
+   *
+   * @param string $email The email address for the current patron record
+   * @return boolean Success status
+   */
+  public function set_patron_email($email) {
+    $success = FALSE;
+    $url_suffix = 'patroninfo~S24/' . $this->pnum . '/modpinfo';
+    $post = 'email=' . $email;
+    $result = self::my_curl_exec($url_suffix, $post);
+    if (strpos($result['body'], 'Patron information updated')) {
+      $success = TRUE;
+    }
+    return $success;
   }
 
   /**

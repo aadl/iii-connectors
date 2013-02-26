@@ -482,6 +482,15 @@ class locum_iii_2009 {
   }
 
   /**
+   * Sets Patron Information
+   */
+  public function set_patron_info($cardnum, $email, $pin) {
+    $iii = $this->get_tools($cardnum, $pin);
+    if ($iii->catalog_login() == FALSE) { return FALSE; }
+    return $iii->set_patron_email($email);
+  }
+
+  /**
    * Returns an array of patron checkouts
    *
    * @param string $cardnum Patron barcode/card number
