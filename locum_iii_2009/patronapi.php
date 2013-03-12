@@ -39,6 +39,7 @@ class iii_patronapi {
     $api_contents = self::get_api_contents($apiurl);
     if (!$api_contents) return FALSE;
 
+    $api_data = array();
     $api_array_lines = explode("\n", $api_contents);
     while (strlen($api_data['PBARCODE']) < $this->bcode_length && !$api_data['ERRNUM']) {
       foreach ($api_array_lines as $api_line) {
@@ -47,7 +48,10 @@ class iii_patronapi {
         $regex_match = array("/\[(.*?)\]/","/\s/","/#/");
         $regex_replace = array('','','NUM');
         $key = trim(preg_replace($regex_match, $regex_replace, $api_line_arr[0]));
-        $api_data[$key] = trim($api_line_arr[1]);
+        // Don't overwrite duplicate field values
+        if (!array_key_exists($key, $api_data)) {
+          $api_data[$key] = trim($api_line_arr[1]);
+        }
       }
     }
     return $api_data;
