@@ -245,6 +245,7 @@ class locum_iii_2009 {
     // Publication information
     $bib['pub_info'] = '';
     $pub_info = self::prepare_marc_values($bib_info_marc['260'], array('a', 'b', 'c'));
+    if(!$pub_info) { $pub_info = self::prepare_marc_values($bib_info_marc['264'], array('a', 'b', 'c')); }
     $bib['pub_info'] = $pub_info[0];
 
     // Publication year
