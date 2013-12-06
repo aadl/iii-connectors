@@ -697,7 +697,10 @@ class iiitools {
 
     }
     $result = self::my_curl_exec($url_suffix_stage1, $postvars);
-    $postvars = 'action=submitData&key=' . $sessionkey;
+    preg_match('/<input type="hidden" name="org.apache.struts.taglib.html.TOKEN" value="([0-9a-f]+)">/',
+               $result['body'], $matches);
+    $postvars = 'action=submitData&key=' . $sessionkey . '&org.apache.struts.taglib.html.TOKEN=' . $matches[1] .
+                '&submit.x=51&submit.y=23&isCancel=';
     $pay_result = self::my_curl_exec($url_suffix_stage2, $postvars);
     usleep(500000); // To make sure the record has been freed.
 
