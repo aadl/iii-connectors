@@ -446,6 +446,16 @@ class locum_iii_2009 {
         }
       }
 
+      // Override Location Name
+      if (count($this->locum_config['location_overrides'])) {
+        foreach ($this->locum_config['location_overrides'] as $location_override) {
+          if (strpos($location_override, $item['location'] . '|') === 0) {
+            $item['location'] = str_replace($item['location'] . '|', '', $location_override);
+            break;
+          }
+        }
+      }
+
       $avail_array['items'][] = $item;
     }
 
