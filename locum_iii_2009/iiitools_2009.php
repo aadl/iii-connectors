@@ -742,8 +742,10 @@ class iiitools {
       $postvars .= '&' . $dkey . '=' . urlencode($dval);
     }
     $donate_result = self::my_curl_exec("webapp/iii/ecom/validateDonate.do", $postvars);
-
-    $postvars = 'action=submitData&key=' . $donate_vars['key'];
+    preg_match('/<input type="hidden" name="org.apache.struts.taglib.html.TOKEN" value="([0-9a-f]+)">/',
+               $donate_result['body'], $matches);
+    $postvars = 'action=submitData&key=' . $donate_vars['key']. '&org.apache.struts.taglib.html.TOKEN=' . $matches[1] .
+                '&submit.x=51&submit.y=23&isCancel=';
     $donate_result = self::my_curl_exec("webapp/iii/ecom/submitDonate.do", $postvars);
 
     $result_arr['body'] = strip_tags($donate_result['body'], "<h2><br>");
