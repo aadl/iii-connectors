@@ -405,9 +405,28 @@ class locum_iii_2009 {
       $item['branch'] = $default_branch;
       $item['due'] = 0;
 
+      // Check for suppress location code
+      foreach ($this->locum_config['suppress_locations'] as $suppress_location) {
+        if (preg_match($suppress_location, $item['loc_code'])) {
+          // don't include this item in the items array
+          continue 2;
+        }
+      }
+
+      // Special handling for Tools
+      if ($item['location'] == 'Downtown I. T. Department') {
+        if ($item['statusmsg'] == 'AVAILABLE') {
+          $item['statusmsg'] = 'IN TRANSIT';
+        }
+        else if ($item['statusmsg'] == 'ON SHELF') {
+          $item['statusmsg'] = 'AVAILABLE';
+        }
+      }
+
       if (in_array($item['statusmsg'], $avail_token)) {
         $item['avail'] = 1;
-      } else {
+      }
+      else {
         $item['avail'] = 0;
         if (preg_match('/DUE/i', $item['statusmsg'])) {
           $due_arr = explode(' ', trim($item['statusmsg']));
