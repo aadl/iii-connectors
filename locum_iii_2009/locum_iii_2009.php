@@ -432,6 +432,8 @@ class locum_iii_2009 {
           $due_arr = explode(' ', trim($item['statusmsg']));
           $due_date_arr = explode('-', $due_arr[1]);
           $item['due'] = mktime(0, 0, 0, $due_date_arr[0], $due_date_arr[1], (2000 + (int) $due_date_arr[2]));
+          // Remove additional text from status line
+          $item['statusmsg'] = $due_arr[0] . ' ' . $due_arr[1];
         }
       }
 
