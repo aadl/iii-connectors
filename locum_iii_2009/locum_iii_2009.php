@@ -423,6 +423,13 @@ class locum_iii_2009 {
         }
       }
 
+      // Grab Copy number from call number field
+      if (preg_match('/ c\.([\d]+)$/', $item['callnum'], $matches)) {
+        $item['copynum'] = $matches[1];
+        $cn_len = strlen($matches[0]);
+        $item['callnum'] = substr($item['callnum'], 0, -$cn_len); // remove copy number from callnum field
+      }
+
       if (in_array($item['statusmsg'], $avail_token)) {
         $item['avail'] = 1;
       }
