@@ -483,6 +483,9 @@ class locum_iii_2009 {
           }
         }
       }
+      if (stripos('display', $item['statusmsg']) !== FALSE) {
+        $item['location'] .= ' Display';
+      }
 
       $avail_array['items'][] = $item;
     }
