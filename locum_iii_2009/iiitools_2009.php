@@ -271,6 +271,8 @@ class iiitools {
    * @return array An array of items checked out.
    */
   public function parse_patron_items($itemlist_raw) {
+    $items = array();
+
     // Grab all patFuncEntry rows
     $row_count = preg_match_all('%<tr.+?patFuncEntry.+?>(.+?)</tr>%s', $itemlist_raw, $rowmatch);
     for ($i = 0; $i < $row_count; $i++) {
@@ -285,32 +287,32 @@ class iiitools {
 
       // Parse individual cell data
       preg_match('%name="(.+?)".+?value="i(.+?)"%s', $item_data['patFuncMark'], $mark_match);
-      $item[$i]['varname'] = $mark_match[1];
-      $item[$i]['inum'] = $mark_match[2];
+      $items[$i]['varname'] = $mark_match[1];
+      $items[$i]['inum'] = $mark_match[2];
 
       preg_match('%record=b([0-9]{7})%s', $item_data['patFuncTitle'], $title_match);
       if ($title_match[1]) {
-        $item[$i]['bnum'] = $title_match[1];
-        $item[$i]['ill'] = 0;
+        $items[$i]['bnum'] = $title_match[1];
+        $items[$i]['ill'] = 0;
       }
       else {
-        $item[$i]['ill'] = 1;
+        $items[$i]['ill'] = 1;
       }
-      $item[$i]['title'] = trim(strip_tags($item_data['patFuncTitle']));
+      $items[$i]['title'] = trim(strip_tags($item_data['patFuncTitle']));
 
       preg_match('%Renewed ([0-9]+) time%', $item_data['patFuncStatus'], $renew_match);
       if ($renew_match[1]) {
-        $item[$i]['numrenews'] = $renew_match[1];
+        $items[$i]['numrenews'] = $renew_match[1];
       }
       else {
-        $item[$i]['numrenews'] = 0;
+        $items[$i]['numrenews'] = 0;
       }
 
       preg_match('%DUE ([\d]{2}-[\d]{2}-[\d]{2})%', $item_data['patFuncStatus'], $duedate_match);
-      $item[$i]['duedate'] = self::date_to_timestamp($duedate_match[1]);
-      $item[$i]['callnum'] = trim($item_data['patFuncCallNo']);
+      $items[$i]['duedate'] = self::date_to_timestamp($duedate_match[1]);
+      $items[$i]['callnum'] = trim($item_data['patFuncCallNo']);
     }
-    return $item;
+    return $items;
   }
 
   /**
@@ -576,54 +578,39 @@ class iiitools {
    * @return boolean|array Array of checked-out items, their renewal status, and new due date if applicable.
    */
   public function parse_patron_renews($renewlist_raw, $renew_arg = NULL) {
-
-    // These are subject to change at any time
-    $regex_indiv = '%%<input type="checkbox" name="%s" value="%s" \/>(.*?)DUE(.*?)<(.+?)td%%s';
-    $regex_rnall = '%<input type="checkbox" name="(.*?)" value="i(.*?)" \/>(.*?)DUE(.*?)<(.+?)td%s';
-
+    $items = $this->parse_patron_items($renewlist_raw);
+    // reindex items by varname
+    foreach ($items as $index => $item) {
+      $items[$item['varname']] = $item;
+      unset($items[$index]);
+    }
+    $renew_res = array();
     // If renewing individual items
     if (is_array($renew_arg)) {
       foreach ($renew_arg as $inum => $varname) {
-        if ($inum[0] != 'i') { $inum_reg = 'i' . $inum; } else { $inum_reg = $inum; }
-        $regex = sprintf($regex_indiv, $varname, $inum_reg);
-        preg_match($regex, $renewlist_raw, $rawmatch);
-        $extra = $rawmatch[3];
-        if (preg_match('/Renewed(.*?)time/i', $extra, $renew_match)) {
-          $renew_res[$inum]['num_renews'] = (int) trim($renew_match[1]);
-        } else {
-          $renew_res[$inum]['num_renews'] = 0;
-        }
+        $renew_res[$inum]['num_renews'] = $items[$varname]['numrenews'];
+        /*
         if (preg_match('/color=\"red\">(.*?)</i', $extra, $error_match)) {
           $renew_res[$inum]['error'] = ucwords(strtolower(trim($error_match[1])));
         }
+        */
         $renew_res[$inum]['varname'] = $varname;
-        $renew_res[$inum]['new_duedate'] = self::date_to_timestamp($rawmatch[2]);
+        $renew_res[$inum]['new_duedate'] = $items[$varname]['duedate'];
       }
-    // If remewing all items
-    } else {
+
+    }
+    // If renewing all items
+    else {
       if (strtolower($renew_arg) == 'all') {
-        $regex = $regex_rnall;
-        preg_match_all($regex, $renewlist_raw, $rawmatch);
-        $varnames = $rawmatch[1];
-        $inums = $rawmatch[2];
-        foreach ($rawmatch[5] as $key => $extra) {
-          if (preg_match('/Renewed(.*?)time/i', $extra, $renew_match)) {
-            $renew_res[$inums[$key]]['num_renews'] = (int) trim($renew_match[1]);
-          } else {
-            $renew_res[$inums[$key]]['num_renews'] = 0;
-          }
-          if (preg_match('/color=\"red\">(.*?)</i', $extra, $error_match)) {
-            $renew_res[$inums[$key]]['error'] = ucwords(strtolower(trim($error_match[1])));
-          }
+        foreach ($items as $varname => $item) {
+          $inum = $item['inum'];
+          $renew_res[$inum]['num_renews'] = $item['numrenews'];
+          $renew_res[$inum]['varname'] = $varname;
+          $renew_res[$inum]['new_duedate'] = $item['duedate'];
         }
-        foreach ($rawmatch[2] as $key => $inum) {
-          $renew_res[$inum]['varname'] = trim($varnames[$key]);
-        }
-        foreach ($rawmatch[4] as $key => $due) {
-          $renew_res[$inums[$key]]['new_duedate'] = self::date_to_timestamp($due);
-        }
-      } else {
-        return FALSE;
+      }
+      else {
+        $renew_res = FALSE;
       }
     }
     return $renew_res;
