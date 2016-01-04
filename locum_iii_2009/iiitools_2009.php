@@ -206,7 +206,6 @@ class iiitools {
    * @return array An array of items checked out.
    */
   public function parse_patron_history_items($itemslist_raw) {
-    //print_r ($itemslist_raw);
     $regex = '%<input type="checkbox" name="(.+?)" />.+?patFuncTitle"><a href="/record=b(.+?)~S24">(.+?)</a>.+?patFuncAuthor">(.+?)</td>.+?patFuncDate">(.+?)</td>.+?"patFuncDetails">(.+?)</td>%s';
     $count = preg_match_all($regex, $itemslist_raw, $rawmatch);
     for ($i=0; $i < $count; $i++) {
@@ -311,6 +310,10 @@ class iiitools {
       preg_match('%DUE ([\d]{2}-[\d]{2}-[\d]{2})%', $item_data['patFuncStatus'], $duedate_match);
       $items[$i]['duedate'] = self::date_to_timestamp($duedate_match[1]);
       $items[$i]['callnum'] = trim($item_data['patFuncCallNo']);
+
+      if (preg_match('/color=\"red\">(.*?)</i', $item_data['patFuncStatus'], $error_match)) {
+        $items[$i]['error'] = ucwords(strtolower(trim($error_match[1])));
+      }
     }
     return $items;
   }
@@ -553,7 +556,6 @@ class iiitools {
    * @return boolean|array Array of checked-out items, their renewal status, and new due date if applicable.
    */
   public function renew_material($renew_arg = 'all') {
-
     if (is_array($renew_arg)) {
       foreach ($renew_arg as $inum => $varname) {
         if ($inum[0] != 'i') { $inum = 'i' . $inum; }
@@ -589,13 +591,11 @@ class iiitools {
     if (is_array($renew_arg)) {
       foreach ($renew_arg as $inum => $varname) {
         $renew_res[$inum]['num_renews'] = $items[$varname]['numrenews'];
-        /*
-        if (preg_match('/color=\"red\">(.*?)</i', $extra, $error_match)) {
-          $renew_res[$inum]['error'] = ucwords(strtolower(trim($error_match[1])));
-        }
-        */
         $renew_res[$inum]['varname'] = $varname;
         $renew_res[$inum]['new_duedate'] = $items[$varname]['duedate'];
+        if ($items[$varname]['error']) {
+          $renew_res[$inum]['error'] = $items[$varname]['error'];
+        }
       }
 
     }
@@ -607,6 +607,9 @@ class iiitools {
           $renew_res[$inum]['num_renews'] = $item['numrenews'];
           $renew_res[$inum]['varname'] = $varname;
           $renew_res[$inum]['new_duedate'] = $item['duedate'];
+          if ($item['error']) {
+            $renew_res[$inum]['error'] = $item['error'];
+          }
         }
       }
       else {
