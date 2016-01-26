@@ -430,7 +430,7 @@ class locum_iii_2009 {
         $item['callnum'] = substr($item['callnum'], 0, -$cn_len); // remove copy number from callnum field
       }
 
-      if (in_array($item['statusmsg'], $avail_token)) {
+      if (in_array(strtolower($item['statusmsg']), $avail_token)) {
         $item['avail'] = 1;
       }
       else {
