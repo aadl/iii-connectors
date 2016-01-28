@@ -414,7 +414,7 @@ class locum_iii_2009 {
       }
 
       // Special handling for Tools
-      if ($item['location'] == 'Downtown I. T. Department') {
+      if ($item['location'] == 'Downtown 1st Floor Tools Shelf') {
         if ($item['statusmsg'] == 'AVAILABLE') {
           $item['statusmsg'] = 'IN TRANSIT';
         }
