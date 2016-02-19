@@ -442,6 +442,9 @@ class locum_iii_2009 {
           // Remove additional text from status line
           $item['statusmsg'] = $due_arr[0] . ' ' . $due_arr[1];
         }
+        else if (strpos($item['statusmsg'], 'LIB USE ONLY') !== FALSE) {
+          $item['libuse'] = 1;
+        }
       }
 
       // Determine age from location
