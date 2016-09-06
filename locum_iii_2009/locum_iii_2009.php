@@ -421,6 +421,11 @@ class locum_iii_2009 {
         else if ($item['statusmsg'] == 'ON SHELF') {
           $item['statusmsg'] = 'AVAILABLE';
         }
+        else if ($item['statusmsg'] == 'Westgate ON SHELF') {
+          $item['location'] = 'Westgate Tools Shelf';
+          $item['loc_code'] = 'watls';
+          $item['statusmsg'] = 'AVAILABLE';
+        }
       }
 
       // Grab Copy number from call number field
