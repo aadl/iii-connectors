@@ -428,6 +428,13 @@ class locum_iii_2009 {
         }
       }
 
+      // Special handling for Westgate on Shelf status
+      if ($item['statusmsg'] == 'Westgate ON SHELF') {
+        $item['location'] = 'Westgate Branch Library';
+        $item['loc_code'] = 'wa';
+        $item['statusmsg'] = 'AVAILABLE';
+      }
+
       // Grab Copy number from call number field
       if (preg_match('/ c\.([\d]+)$/', $item['callnum'], $matches)) {
         $item['copynum'] = $matches[1];
