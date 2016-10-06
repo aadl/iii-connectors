@@ -405,6 +405,11 @@ class locum_iii_2009 {
       $item['branch'] = $default_branch;
       $item['due'] = 0;
 
+      // Skip items in "Pre-deletion" status
+      if ($item['statusmsg'] == 'PRE-DELETION') {
+        continue;
+      }
+
       // Check for suppress location code
       foreach ($this->locum_config['suppress_locations'] as $suppress_location) {
         if (preg_match($suppress_location, $item['loc_code'])) {

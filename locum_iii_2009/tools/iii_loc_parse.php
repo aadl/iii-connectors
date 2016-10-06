@@ -32,11 +32,11 @@ foreach ($codes_raw as $code_raw) {
     }
   }
   $locations_arr[$key] = trim($loc);
-  
+
 }
 
 foreach ($locations_arr as $code => $location) {
-  $config_string .= $code . "\t\t\t = " . '"' . $location . '"' . "\n";
+  $config_string .= sprintf('%-10s', $code) . " = " . '"' . $location . '"' . "\n";
 }
 
 $output = "\n\n[iii_location_codes]\n\n" . $config_string;
