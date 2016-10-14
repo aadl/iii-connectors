@@ -352,7 +352,10 @@ class iiitools {
       $item[$i]['title'] = trim(strip_tags($item_data['patFuncTitle']));
 
       $status = trim($item_data['patFuncStatus']);
-      if ((!preg_match('/of/i', $status)) && (!preg_match('/ready/i', $status)) && (!preg_match('/RECEIVED/i', $status))) {
+      if ((!preg_match('/of/i', $status)) &&
+          (!preg_match('/ready/i', $status)) &&
+          (!preg_match('/received/i', $status)) &&
+          (!preg_match('/due /i', $status))) {
         $status = "In Transit";
       }
       $item[$i]['status'] = $status;
