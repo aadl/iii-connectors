@@ -358,6 +358,9 @@ class iiitools {
           (!preg_match('/due /i', $status))) {
         $status = "In Transit";
       }
+      // Closure hack
+      $status = str_replace('01-11-18', '12-26-17', $status);
+
       $item[$i]['status'] = $status;
 
       $item[$i]['pickuploc'] = trim($item_data['patFuncPickup']);
